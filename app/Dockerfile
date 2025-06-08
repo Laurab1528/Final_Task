@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 FROM python:3.10-slim
 
 # Container metadata
-LABEL maintainer="Your Name <your.email@example.com>"
+LABEL maintainer="Your Name laurab1528@hotmail.com"
 LABEL description="FastAPI application for EKS deployment"
 
 # Set environment variables
