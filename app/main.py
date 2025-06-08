@@ -5,9 +5,11 @@ from datetime import datetime
 import json
 from pathlib import Path
 import os
-from models import HealthResponse
+from models import HealthResponse, Product, ProductsResponse
+from dotenv import load_dotenv
 
 app = FastAPI()
+load_dotenv() 
 
 # Basic logging configuration
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +43,10 @@ def load_products():
         logger.error(f"Error loading products: {e}")
         return {"products": []}
 
+@app.get("/")
+def read_root():
+    return {"message": "¡Welcome to my API FastAPI!"}
+
 @app.get("/health", response_model=HealthResponse)
 def health_check():
     """
@@ -54,13 +60,15 @@ def health_check():
         }
     )
 
-@app.get("/api/products", dependencies=[Security(get_api_key)])
+@app.get("/api/products", response_model=ProductsResponse, dependencies=[Security(get_api_key)])
 def get_products():
     """
     Returns list of products in JSON format
     """
     logger.info("Products endpoint called")
-    return load_products()
+    products_data = load_products().get("products", [])
+    products = [Product(**item) for item in products_data]
+    return ProductsResponse(data=products)
 
 @app.get("/api/products/{product_id}", dependencies=[Security(get_api_key)])
 def get_product(product_id: int):
@@ -72,4 +80,5 @@ def get_product(product_id: int):
     for product in data.get("products", []):
         if product["id"] == product_id:
             return {"product": product}
-    return {"error": "Product not found"} 
+    return {"error": "Product not found"}
+
