@@ -1,0 +1,28 @@
+{
+    "products": [
+        {
+            "id": 1,
+            "name": "Laptop Pro",
+            "description": "Latest generation laptop",
+            "price": 1299.99,
+            "category": "Electronics",
+            "stock": 50
+        },
+        {
+            "id": 2,
+            "name": "Smart Watch",
+            "description": "Smart watch with heart rate monitor",
+            "price": 299.99,
+            "category": "Wearables",
+            "stock": 100
+        },
+        {
+            "id": 3,
+            "name": "Wireless Earbuds",
+            "description": "Bluetooth earphones with noise cancellation",
+            "price": 159.99,
+            "category": "Audio",
+            "stock": 75
+        }
+    ]
+} 
