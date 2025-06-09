@@ -34,4 +34,4 @@ readinessProbe:
     path: /health
     port: http
   initialDelaySeconds: 5
-  periodSeconds: 10 
+  periodSeconds: 10

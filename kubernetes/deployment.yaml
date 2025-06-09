@@ -9,26 +9,24 @@ spec:
   selector:
     matchLabels:
       app: fastapi-app
-  strategy:
-    type: Recreate
   template:
     metadata:
       labels:
         app: fastapi-app
     spec:
+      serviceAccountName: fastapi-sa
       containers:
       - name: fastapi-app
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/fastapi-app:latest
+        image: <TU_AWS_ACCOUNT_ID>.dkr.ecr.<TU_AWS_REGION>.amazonaws.com/fastapi-app:latest
         imagePullPolicy: Always
         ports:
         - containerPort: 80
-        resources:
-          requests:
-            cpu: "100m"
-            memory: "128Mi"
-          limits:
-            cpu: "200m"
-            memory: "256Mi"
+        env:
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: fastapi-config
+              key: LOG_LEVEL
         livenessProbe:
           httpGet:
             path: /health
@@ -41,27 +39,3 @@ spec:
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 10
-        volumeMounts:
-        - name: sqlite-data
-          mountPath: /app/data
-        env:
-        - name: DATABASE_URL
-          value: "sqlite:///data/products.db"
-        - name: POD_NAME
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.name
-        - name: POD_NAMESPACE
-          valueFrom:
-            fieldRef:
-              fieldPath: metadata.namespace
-      volumes:
-      - name: sqlite-data
-        persistentVolumeClaim:
-          claimName: sqlite-pvc
-      securityContext:
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-      imagePullSecrets:
-      - name: regcred 

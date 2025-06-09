@@ -7,6 +7,7 @@ from pathlib import Path
 import os
 from models import HealthResponse, Product, ProductsResponse
 from dotenv import load_dotenv
+import boto3
 
 app = FastAPI()
 load_dotenv() 
@@ -15,10 +16,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# API Key configuration
-API_KEY = os.environ.get("API_KEY")
-if not API_KEY:
-    raise ValueError("API_KEY environment variable is not set")
+def get_secret():
+    secret_name = "fastapi/api_key"
+    region_name = os.environ.get("AWS_REGION", "us-east-1")
+    session = boto3.session.Session()
+    client = session.client(service_name='secretsmanager', region_name=region_name)
+    get_secret_value_response = client.get_secret_value(SecretId=secret_name)
+    secret = get_secret_value_response['SecretString']
+    return json.loads(secret)["API_KEY"]
+
+API_KEY = get_secret()
 
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)

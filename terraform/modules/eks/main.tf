@@ -98,3 +98,52 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.node.name
 }
+
+# Secret en AWS Secrets Manager
+resource "aws_secretsmanager_secret" "api_key" {
+  name = "fastapi/api_key"
+}
+
+resource "aws_secretsmanager_secret_version" "api_key_version" {
+  secret_id     = aws_secretsmanager_secret.api_key.id
+  secret_string = jsonencode({ API_KEY = "supersecretapikey" })
+}
+
+# IAM Role para ServiceAccount (IRSA)
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+    principals {
+      type        = "Federated"
+      identifiers = [module.eks.oidc_provider_arn]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(module.eks.oidc_provider_url, "https://", "")}:sub"
+      values   = ["system:serviceaccount:production:fastapi-sa"]
+    }
+  }
+}
+
+resource "aws_iam_role" "fastapi_sa" {
+  name               = "fastapi-sa-role"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+}
+
+resource "aws_iam_role_policy" "fastapi_secrets_policy" {
+  name = "fastapi-secrets-policy"
+  role = aws_iam_role.fastapi_sa.id
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ],
+        Resource = aws_secretsmanager_secret.api_key.arn
+      }
+    ]
+  })
+}
