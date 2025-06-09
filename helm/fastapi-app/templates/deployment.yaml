@@ -5,7 +5,7 @@ metadata:
   labels:
     app: fastapi-app
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       app: fastapi-app
@@ -17,16 +17,13 @@ spec:
       serviceAccountName: fastapi-sa
       containers:
       - name: fastapi-app
-        image: <TU_AWS_ACCOUNT_ID>.dkr.ecr.<TU_AWS_REGION>.amazonaws.com/fastapi-app:latest
-        imagePullPolicy: Always
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
         ports:
         - containerPort: 80
         env:
         - name: LOG_LEVEL
-          valueFrom:
-            configMapKeyRef:
-              name: fastapi-config
-              key: LOG_LEVEL
+          value: {{ .Values.env.LOG_LEVEL | quote }}
         livenessProbe:
           httpGet:
             path: /health
@@ -38,4 +35,4 @@ spec:
             path: /health
             port: 80
           initialDelaySeconds: 5
-          periodSeconds: 10
+          periodSeconds: 10 

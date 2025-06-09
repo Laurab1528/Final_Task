@@ -4,4 +4,4 @@ metadata:
   name: fastapi-config
   namespace: production
 data:
-  LOG_LEVEL: "INFO" 
+  LOG_LEVEL: {{ .Values.env.LOG_LEVEL | quote }} 

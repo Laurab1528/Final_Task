@@ -16,4 +16,8 @@ output "oidc_provider_url" {
 
 output "fastapi_sa_role_arn" {
   value = aws_iam_role.fastapi_sa.arn
+}
+
+output "cluster_certificate_authority_data" {
+  value = aws_eks_cluster.main.certificate_authority[0].data
 } 
