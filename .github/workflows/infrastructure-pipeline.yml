@@ -38,6 +38,10 @@ jobs:
         cd terraform
         tflint --init
         tflint --format=compact
+    - name: Run tfsec (Terraform security analysis)
+      run: |
+        curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+        tfsec terraform/
     
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
