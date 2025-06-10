@@ -152,6 +152,29 @@ jobs:
               body: output
             })
 
+      - name: Importar recursos existentes si es necesario
+        run: |
+          # Importar Secrets Manager si existe
+          if aws secretsmanager describe-secret --secret-id fastapi/api_key > /dev/null 2>&1; then
+            terraform import aws_secretsmanager_secret.api_key fastapi/api_key || true
+          fi
+
+          # Importar KMS Key si existe
+          KMS_KEY_ID=$(aws kms list-aliases --query "Aliases[?AliasName=='alias/fastapi-key'].TargetKeyId" --output text)
+          if [ ! -z "$KMS_KEY_ID" ]; then
+            terraform import aws_kms_key.fastapi $KMS_KEY_ID || true
+          fi
+
+          # Importar IAM Role si existe
+          if aws iam get-role --role-name fastapi-role > /dev/null 2>&1; then
+            terraform import aws_iam_role.fastapi fastapi-role || true
+          fi
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
