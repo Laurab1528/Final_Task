@@ -41,17 +41,19 @@ jobs:
         run: terraform init
 
       # RELEASE LOCK BEFORE APPLYING BACKEND
-      - name: Try to release Terraform lock if exists (backend)
+      - name: Try to release ALL Terraform locks if exist
         working-directory: terraform
         run: |
-          LOCK_ID=$(aws dynamodb scan \
+          LOCK_IDS=$(aws dynamodb scan \
             --table-name epam-final-terraform-locks \
             --filter-expression "attribute_exists(LockID)" \
-            --query "Items[0].LockID.S" \
+            --query "Items[].LockID.S" \
             --output text)
-          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
-            terraform force-unlock -force "$LOCK_ID" || true
-          fi
+          for LOCK_ID in $LOCK_IDS; do
+            if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+              terraform force-unlock -force "$LOCK_ID" || true
+            fi
+          done
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -191,17 +193,19 @@ jobs:
               body: output
             })
 
-      - name: Try to release Terraform lock if exists
+      - name: Try to release ALL Terraform locks if exist
         working-directory: terraform
         run: |
-          LOCK_ID=$(aws dynamodb scan \
+          LOCK_IDS=$(aws dynamodb scan \
             --table-name epam-final-terraform-locks \
             --filter-expression "attribute_exists(LockID)" \
-            --query "Items[0].LockID.S" \
+            --query "Items[].LockID.S" \
             --output text)
-          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
-            terraform force-unlock -force "$LOCK_ID" || true
-          fi
+          for LOCK_ID in $LOCK_IDS; do
+            if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+              terraform force-unlock -force "$LOCK_ID" || true
+            fi
+          done
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
