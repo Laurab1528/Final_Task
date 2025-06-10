@@ -9,4 +9,5 @@ requests==2.32.2
 typing-extensions==4.8.0
 cryptography==45.0.3
 python-dotenv==1.0.1
+starlette==0.36.3
 boto3

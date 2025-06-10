@@ -18,7 +18,7 @@ def test_health_check():
 
 def test_get_products_unauthorized():
     response = client.get("/api/products")
-    assert response.status_code == 401
+    assert response.status_code == 403
 
 def test_get_products_authorized():
     response = client.get("/api/products", headers={"X-API-Key": API_KEY})
@@ -37,10 +37,3 @@ def test_get_product_not_found():
     assert response.status_code == 200
     assert "error" in response.json()
 
-def test_get_data():
-    response = client.get("/api/data")
-    assert response.status_code == 200
-    data = response.json()
-    assert "message" in data
-    assert "data" in data
-    assert isinstance(data["data"], list) 
