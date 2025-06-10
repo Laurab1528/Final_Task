@@ -17,4 +17,10 @@ variable "aws_secret_access_key" {
 variable "api_key" {
   description = "API Key para la aplicación FastAPI"
   type        = string
+}
+
+variable "project_name" {
+  description = "Project name for resource naming (used in S3 bucket and DynamoDB table)"
+  type        = string
+  default     = "epam-final"
 } 

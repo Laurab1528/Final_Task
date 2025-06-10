@@ -38,5 +38,37 @@ module "eks" {
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
 }
+# --- TEMPORARY: Only create backend resources (S3 and DynamoDB) in the first apply ---
+# Comment out all other resources below this line for the initial apply
+# S3 bucket for Terraform state
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "${var.project_name}-terraform-state"
+  force_destroy = true
+  versioning {
+    enabled = true
+  }
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+  tags = {
+    Name = "Terraform State Bucket"
+  }
+}
 
-# The Helm deployment for fastapi-app should be done in a separate workflow/job after the EKS cluster is ready and reachable. 
+# DynamoDB table for state locking
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "${var.project_name}-terraform-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+  tags = {
+    Name = "Terraform State Lock Table"
+  }
+} 
