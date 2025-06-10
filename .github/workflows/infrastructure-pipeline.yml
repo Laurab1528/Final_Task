@@ -21,7 +21,7 @@ env:
   TFLINT_VERSION: "v0.44.1"
 
 jobs:
-  # 1. Crear backend remoto (solo S3 y DynamoDB)
+  # 1. Create remote backend (only S3 and DynamoDB)
   create-backend:
     runs-on: ubuntu-latest
     steps:
@@ -40,8 +40,8 @@ jobs:
         working-directory: terraform
         run: terraform init
 
-      # LIBERAR LOCK ANTES DE APLICAR BACKEND
-      - name: Intentar liberar lock de Terraform si existe (backend)
+      # RELEASE LOCK BEFORE APPLYING BACKEND
+      - name: Try to release Terraform lock if exists (backend)
         working-directory: terraform
         run: |
           LOCK_ID=$(aws dynamodb scan \
@@ -58,11 +58,11 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
-      - name: Apply only backend resources (con retry y unlock)
+      - name: Apply only backend resources (with retry and unlock)
         working-directory: terraform
         run: |
           for i in 1 2 3; do
-            # Intentar liberar lock antes de cada intento
+            # Try to release lock before each attempt
             LOCK_ID=$(aws dynamodb scan \
               --table-name epam-final-terraform-locks \
               --filter-expression "attribute_exists(LockID)" \
@@ -72,10 +72,10 @@ jobs:
               terraform force-unlock -force "$LOCK_ID" || true
             fi
 
-            # Intentar apply (pasa la variable api_key)
+            # Try apply (pass api_key variable)
             terraform apply -auto-approve -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -var="api_key=${{ secrets.API_KEY }}" && break
 
-            echo "Apply falló, reintentando en 10 segundos (intento $i de 3)..."
+            echo "Apply failed, retrying in 10 seconds (attempt $i of 3)..."
             sleep 10
           done
         shell: bash
@@ -84,7 +84,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
-  # 2. El resto de tu pipeline original, que depende del backend
+  # 2. The rest of your original pipeline, which depends on the backend
   terraform:
     runs-on: ubuntu-latest
     needs: create-backend
@@ -128,7 +128,7 @@ jobs:
           api_key = "${{ secrets.API_KEY }}"
           EOF
 
-      - name: Mover temporalmente terraform.tfvars
+      - name: Temporarily move terraform.tfvars
         run: |
           cd terraform
           mv terraform.tfvars terraform.tfvars.bak
@@ -139,7 +139,7 @@ jobs:
           cd terraform
           terraform fmt -check
 
-      - name: Devolver terraform.tfvars
+      - name: Restore terraform.tfvars
         run: |
           cd terraform
           mv terraform.tfvars.bak terraform.tfvars
@@ -192,7 +192,7 @@ jobs:
               body: output
             })
 
-      - name: Intentar liberar lock de Terraform si existe
+      - name: Try to release Terraform lock if exists
         working-directory: terraform
         run: |
           LOCK_ID=$(aws dynamodb scan \
@@ -209,22 +209,22 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
-      - name: Importar recursos existentes si es necesario
+      - name: Import existing resources if needed
         working-directory: terraform
         run: |
           set -e
 
-          # S3 Bucket para el state
+          # S3 Bucket for state
           if aws s3api head-bucket --bucket epam-final-terraform-state > /dev/null 2>&1; then
             terraform import aws_s3_bucket.terraform_state epam-final-terraform-state || true
           fi
 
-          # DynamoDB Table para locks
+          # DynamoDB Table for locks
           if aws dynamodb describe-table --table-name epam-final-terraform-locks > /dev/null 2>&1; then
             terraform import aws_dynamodb_table.terraform_locks epam-final-terraform-locks || true
           fi
 
-          # KMS Key (por alias)
+          # KMS Key (by alias)
           KMS_KEY_ID=$(aws kms list-aliases --query "Aliases[?AliasName=='alias/eks-encryption-key'].TargetKeyId" --output text)
           if [ ! -z "$KMS_KEY_ID" ]; then
             terraform import module.eks.aws_kms_key.eks $KMS_KEY_ID || true
@@ -250,7 +250,7 @@ jobs:
             terraform import module.eks.aws_secretsmanager_secret.api_key fastapi/api_key2 || true
           fi
 
-          # Subnets públicas
+          # Public subnets
           for i in 1 2; do
             SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=public-subnet-$i" --query "Subnets[0].SubnetId" --output text)
             if [ "$SUBNET_ID" != "None" ]; then
@@ -258,7 +258,7 @@ jobs:
             fi
           done
 
-          # Subnets privadas
+          # Private subnets
           for i in 1 2; do
             SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=private-subnet-$i" --query "Subnets[0].SubnetId" --output text)
             if [ "$SUBNET_ID" != "None" ]; then
@@ -266,7 +266,7 @@ jobs:
             fi
           done
 
-          # CloudWatch Log Group para VPC Flow Logs
+          # CloudWatch Log Group for VPC Flow Logs
           if aws logs describe-log-groups --log-group-name-prefix /aws/vpc/flow-logs | grep /aws/vpc/flow-logs > /dev/null 2>&1; then
             terraform import module.vpc.aws_cloudwatch_log_group.flow_log /aws/vpc/flow-logs || true
           fi
@@ -287,4 +287,13 @@ jobs:
         if: always()
         run: |
           cd terraform
-          rm -f terraform.tfvars 
+          rm -f terraform.tfvars
+
+      - name: Create ECR repository if it doesn't exist
+        run: |
+          aws ecr describe-repositories --repository-names fastapi-app --region ${{ env.AWS_REGION }} || \
+          aws ecr create-repository --repository-name fastapi-app --region ${{ env.AWS_REGION }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}

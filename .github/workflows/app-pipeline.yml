@@ -62,6 +62,15 @@ jobs:
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
     
+    - name: Create ECR repository if it does not exist
+      run: |
+        aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} || \
+        aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }}
+      env:
+        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+    
     - name: Build and push Docker image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}

@@ -40,14 +40,14 @@ data "aws_eks_cluster_auth" "cluster" {
 }
 # --- TEMPORARY: Only create backend resources (S3 and DynamoDB) in the first apply ---
 # Comment out all other resources below this line for the initial apply
-# Clave KMS para cifrado de backend (S3 y DynamoDB)
+# KMS key for backend encryption (S3 and DynamoDB)
 resource "aws_kms_key" "tf_backend" {
   description             = "KMS key for Terraform backend (S3 and DynamoDB)"
   deletion_window_in_days = 7
   enable_key_rotation     = true
 }
 
-# S3 bucket para Terraform state
+# S3 bucket for Terraform state
 resource "aws_s3_bucket" "terraform_state" {
   bucket        = "${var.project_name}-terraform-state"
   force_destroy = true
@@ -56,7 +56,7 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
-# Cifrado del bucket de state con KMS propia
+# Server-side encryption for the state bucket with custom KMS
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
   rule {
@@ -67,7 +67,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" 
   }
 }
 
-# Bloquea el acceso público al bucket S3 de state
+# Block public access for the state bucket
 resource "aws_s3_bucket_public_access_block" "terraform_state" {
   bucket                  = aws_s3_bucket.terraform_state.id
   block_public_acls       = true
@@ -76,7 +76,7 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
   restrict_public_buckets = true
 }
 
-# Bucket para logs del bucket de state
+# S3 bucket for logs
 resource "aws_s3_bucket" "logs" {
   bucket        = "${var.project_name}-logs"
   force_destroy = true
@@ -85,7 +85,7 @@ resource "aws_s3_bucket" "logs" {
   }
 }
 
-# Cifrado del bucket de logs con KMS propia
+# Server-side encryption for the logs bucket with custom KMS
 resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
   bucket = aws_s3_bucket.logs.id
   rule {
@@ -96,7 +96,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
   }
 }
 
-# Bloquea el acceso público al bucket de logs
+# Block public access for the logs bucket
 resource "aws_s3_bucket_public_access_block" "logs" {
   bucket                  = aws_s3_bucket.logs.id
   block_public_acls       = true
@@ -105,7 +105,7 @@ resource "aws_s3_bucket_public_access_block" "logs" {
   restrict_public_buckets = true
 }
 
-# Versionado del bucket de logs
+# Versioning for the logs bucket
 resource "aws_s3_bucket_versioning" "logs" {
   bucket = aws_s3_bucket.logs.id
   versioning_configuration {
@@ -113,21 +113,21 @@ resource "aws_s3_bucket_versioning" "logs" {
   }
 }
 
-# (Opcional) Logging para el bucket de logs (puedes usar el mismo bucket o crear otro)
+# (Optional) Logging for the logs bucket (can use itself as target)
 # resource "aws_s3_bucket_logging" "logs" {
 #   bucket        = aws_s3_bucket.logs.id
 #   target_bucket = aws_s3_bucket.logs.id
 #   target_prefix = "log/"
 # }
 
-# Logging para el bucket de state
+# Logging for the state bucket
 resource "aws_s3_bucket_logging" "terraform_state" {
   bucket        = aws_s3_bucket.terraform_state.id
   target_bucket = aws_s3_bucket.logs.id
   target_prefix = "log/"
 }
 
-# Versionado del bucket de state
+# Versioning for the state bucket
 resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
   bucket = aws_s3_bucket.terraform_state.id
   versioning_configuration {
@@ -144,7 +144,7 @@ resource "aws_dynamodb_table" "terraform_locks" {
     name = "LockID"
     type = "S"
   }
-  # Cifrado en reposo con KMS propia
+  # Server-side encryption with custom KMS
   server_side_encryption {
     enabled     = true
     kms_key_arn = aws_kms_key.tf_backend.arn
