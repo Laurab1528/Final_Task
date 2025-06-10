@@ -57,6 +57,22 @@ jobs:
         aws_secret_access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         EOF
 
+    - name: Mover temporalmente terraform.tfvars
+      run: |
+        cd terraform
+        mv terraform.tfvars terraform.tfvars.bak
+
+    - name: Terraform Format
+      id: fmt
+      run: |
+        cd terraform
+        terraform fmt -check
+
+    - name: Devolver terraform.tfvars
+      run: |
+        cd terraform
+        mv terraform.tfvars.bak terraform.tfvars
+
     - name: Formatear archivo terraform.tfvars
       run: |
         cd terraform
