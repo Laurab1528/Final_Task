@@ -44,15 +44,18 @@ data "aws_eks_cluster_auth" "cluster" {
 resource "aws_s3_bucket" "terraform_state" {
   bucket        = "${var.project_name}-terraform-state"
   force_destroy = true
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
   tags = {
     Name = "Terraform State Bucket"
+  }
+}
+
+# Cifrado del bucket de state (nuevo recurso recomendado)
+resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
+  bucket = aws_s3_bucket.terraform_state.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
   }
 }
 
@@ -69,15 +72,18 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 resource "aws_s3_bucket" "logs" {
   bucket = "${var.project_name}-logs"
   force_destroy = true
-  server_side_encryption_configuration {
-    rule {
-      apply_server_side_encryption_by_default {
-        sse_algorithm = "AES256"
-      }
-    }
-  }
   tags = {
     Name = "Terraform Logs Bucket"
+  }
+}
+
+# Cifrado del bucket de logs (nuevo recurso recomendado)
+resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
+  bucket = aws_s3_bucket.logs.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
   }
 }
 
