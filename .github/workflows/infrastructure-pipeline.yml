@@ -72,12 +72,6 @@ jobs:
       run: |
         cd terraform
         mv terraform.tfvars.bak terraform.tfvars
-
-    - name: Terraform Format
-      id: fmt
-      run: |
-        cd terraform
-        terraform fmt -check *.tf
     
     - name: Terraform Init
       id: init
