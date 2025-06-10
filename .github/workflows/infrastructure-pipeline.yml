@@ -73,11 +73,6 @@ jobs:
         cd terraform
         mv terraform.tfvars.bak terraform.tfvars
 
-    - name: Formatear archivo terraform.tfvars
-      run: |
-        cd terraform
-        terraform fmt terraform.tfvars
-
     - name: Terraform Format
       id: fmt
       run: |
