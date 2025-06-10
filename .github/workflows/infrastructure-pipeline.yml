@@ -10,6 +10,11 @@ on:
     paths:
       - 'terraform/**'
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 env:
   AWS_REGION: us-east-1
   TERRAFORM_VERSION: "1.5.0"
@@ -38,6 +43,10 @@ jobs:
         cd terraform
         tflint --init
         tflint --format=compact
+    - name: Run tfsec (Terraform security analysis)
+      run: |
+        curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+        tfsec terraform/
     
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v2
@@ -51,13 +60,24 @@ jobs:
         aws_region = "${{ env.AWS_REGION }}"
         aws_access_key_id = "${{ secrets.AWS_ACCESS_KEY_ID }}"
         aws_secret_access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
+        api_key = "${{ secrets.API_KEY }}"
         EOF
-    
+
+    - name: Mover temporalmente terraform.tfvars
+      run: |
+        cd terraform
+        mv terraform.tfvars terraform.tfvars.bak
+
     - name: Terraform Format
       id: fmt
       run: |
         cd terraform
         terraform fmt -check
+
+    - name: Devolver terraform.tfvars
+      run: |
+        cd terraform
+        mv terraform.tfvars.bak terraform.tfvars
     
     - name: Terraform Init
       id: init

@@ -1,0 +1,18 @@
+replicaCount: 3
+image:
+  repository: fastapi-app
+  tag: latest
+  pullPolicy: Always
+resources:
+  limits:
+    cpu: 400m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+service:
+  type: LoadBalancer
+  port: 80
+env:
+  LOG_LEVEL: "INFO"
+roleArn: arn:aws:iam::992382757725:role/fastapi-sa-role 

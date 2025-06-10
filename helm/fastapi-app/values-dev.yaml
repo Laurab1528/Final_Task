@@ -1,21 +1,18 @@
-replicaCount: 2
+replicaCount: 1
 image:
   repository: fastapi-app
-  tag: latest
+  tag: dev
   pullPolicy: Always
 resources:
   limits:
-    cpu: 200m
-    memory: 256Mi
-  requests:
     cpu: 100m
     memory: 128Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
 service:
   type: ClusterIP
   port: 80
 env:
-  LOG_LEVEL: "INFO"
-serviceAccount:
-  name: fastapi-sa
-  namespace: production
+  LOG_LEVEL: "DEBUG"
   roleArn: arn:aws:iam::992382757725:role/fastapi-sa-role 
