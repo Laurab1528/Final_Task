@@ -4,15 +4,46 @@ resource "aws_eks_cluster" "main" {
   version  = "1.27"
 
   vpc_config {
-    subnet_ids              = concat(var.private_subnet_ids, var.public_subnet_ids)
+    subnet_ids              = var.private_subnet_ids
     endpoint_private_access = true
-    endpoint_public_access  = true
+    endpoint_public_access  = false
   }
+
+  encryption_config {
+    resources = ["secrets"]
+    provider {
+      key_arn = aws_kms_key.eks.arn
+    }
+  }
+
+  enabled_cluster_log_types = [
+    "api",
+    "audit",
+    "authenticator",
+    "controllerManager",
+    "scheduler"
+  ]
 
   depends_on = [
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController,
   ]
+}
+
+# KMS Key para encriptación
+resource "aws_kms_key" "eks" {
+  description             = "KMS key for EKS cluster encryption"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = {
+    Name = "eks-encryption-key"
+  }
+}
+
+resource "aws_kms_alias" "eks" {
+  name          = "alias/eks-encryption-key"
+  target_key_id = aws_kms_key.eks.key_id
 }
 
 resource "aws_eks_node_group" "main" {
@@ -101,7 +132,8 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 
 # Secret en AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
-  name = "fastapi/api_key"
+  name       = "fastapi/api_key"
+  kms_key_id = aws_kms_key.eks.arn
 }
 
 resource "aws_secretsmanager_secret_version" "api_key_version" {
