@@ -16,12 +16,12 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.12"
     }
   }
-  required_version = ">= 1.0"
+
 }
 
 # VPC para EKS
@@ -37,9 +37,7 @@ module "eks" {
   public_subnet_ids  = module.vpc.public_subnet_ids
 }
 
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.cluster_name
-}
+
 
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
