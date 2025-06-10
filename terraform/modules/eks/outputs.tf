@@ -20,4 +20,8 @@ output "fastapi_sa_role_arn" {
 
 output "cluster_certificate_authority_data" {
   value = aws_eks_cluster.main.certificate_authority[0].data
+}
+
+output "kms_key_arn" {
+  value = aws_kms_key.eks.arn
 } 

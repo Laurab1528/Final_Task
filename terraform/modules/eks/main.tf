@@ -148,11 +148,11 @@ data "aws_iam_policy_document" "assume_role" {
     effect  = "Allow"
     principals {
       type        = "Federated"
-      identifiers = [module.eks.oidc_provider_arn]
+      identifiers = [aws_eks_cluster.main.identity[0].oidc[0].issuer]
     }
     condition {
       test     = "StringEquals"
-      variable = "${replace(module.eks.oidc_provider_url, "https://", "")}:sub"
+      variable = "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub"
       values   = ["system:serviceaccount:production:fastapi-sa"]
     }
   }
