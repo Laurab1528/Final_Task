@@ -3,7 +3,7 @@ from main import app
 import os
 
 client = TestClient(app)
-API_KEY = os.environ.get("API_KEY", "supersecretapikey")
+API_KEY = "test_api_key"
 
 
 def test_root():

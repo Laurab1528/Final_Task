@@ -9,6 +9,7 @@ from models import HealthResponse, Product, ProductsResponse
 from dotenv import load_dotenv
 import boto3
 import asyncio
+import sys
 
 app = FastAPI()
 load_dotenv() 
@@ -26,7 +27,14 @@ async def get_secret():
     secret = get_secret_value_response['SecretString']
     return json.loads(secret)["API_KEY"]
 
-API_KEY = asyncio.run(get_secret())
+API_KEY = None
+
+if "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules:
+    # Si estamos corriendo tests, usa un API_KEY de test
+    API_KEY = "test_api_key"
+else:
+    # Solo en ejecución normal, obtén el secreto de AWS
+    API_KEY = asyncio.run(get_secret())
 
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)
