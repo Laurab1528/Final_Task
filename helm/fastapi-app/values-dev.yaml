@@ -14,4 +14,5 @@ service:
   type: ClusterIP
   port: 80
 env:
-  LOG_LEVEL: "DEBUG" 
+  LOG_LEVEL: "DEBUG"
+  roleArn: arn:aws:iam::992382757725:role/fastapi-sa-role 

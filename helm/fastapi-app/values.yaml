@@ -18,4 +18,4 @@ env:
 serviceAccount:
   name: fastapi-sa
   namespace: production
-  roleArn: arn:aws:iam::<TU_AWS_ACCOUNT_ID>:role/fastapi-sa-role 
+  roleArn: arn:aws:iam::992382757725:role/fastapi-sa-role 
