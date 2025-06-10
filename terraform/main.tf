@@ -78,7 +78,7 @@ resource "aws_s3_bucket_public_access_block" "terraform_state" {
 
 # Bucket para logs del bucket de state
 resource "aws_s3_bucket" "logs" {
-  bucket = "${var.project_name}-logs"
+  bucket        = "${var.project_name}-logs"
   force_destroy = true
   tags = {
     Name = "Terraform Logs Bucket"
