@@ -156,4 +156,10 @@ resource "aws_dynamodb_table" "terraform_locks" {
   tags = {
     Name = "Terraform State Lock Table"
   }
+}
+
+resource "aws_s3_bucket_logging" "logs" {
+  bucket        = aws_s3_bucket.logs.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "log/"
 } 
