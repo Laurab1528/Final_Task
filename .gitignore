@@ -66,4 +66,7 @@ coverage.xml
 .secrets
 
 # Jupyter Notebook checkpoints
-.ipynb_checkpoints/ 
+.ipynb_checkpoints/
+
+# Terraform variable files (never commit secrets)
+terraform.tfvars 

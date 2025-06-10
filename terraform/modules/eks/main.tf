@@ -1,3 +1,11 @@
+data "aws_caller_identity" "current" {}
+
+resource "aws_kms_key" "tf_backend" {
+  description             = "KMS key for Terraform backend (S3 and DynamoDB)"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+}
+
 resource "aws_eks_cluster" "main" {
   name     = "my-eks-cluster"
   role_arn = aws_iam_role.cluster.arn
@@ -35,6 +43,35 @@ resource "aws_kms_key" "eks" {
   description             = "KMS key for EKS cluster encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "key-default-1",
+  "Statement": [
+    {
+      "Sid": "Allow administration of the key",
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow CloudWatch Logs to use the key",
+      "Effect": "Allow",
+      "Principal": { "Service": "logs.amazonaws.com" },
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
 
   tags = {
     Name = "eks-encryption-key"
@@ -132,7 +169,7 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 
 # Secret en AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
-  name       = "fastapi/api_key"
+  name       = "fastapi/api_key2"
   kms_key_id = aws_kms_key.eks.arn
 }
 
@@ -142,10 +179,15 @@ resource "aws_secretsmanager_secret_version" "api_key_version" {
 }
 
 # OIDC provider data source to get the ARN
-# This should be placed before the data.aws_iam_policy_document.assume_role
-
-data "aws_iam_openid_connect_provider" "oidc" {
+data "tls_certificate" "oidc" {
   url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+resource "aws_iam_openid_connect_provider" "oidc" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+  client_id_list = ["sts.amazonaws.com"]
+  thumbprint_list = [data.tls_certificate.oidc.certificates[0].sha1_fingerprint]
+  depends_on = [aws_eks_cluster.main]
 }
 
 # IAM Role for ServiceAccount (IRSA)
@@ -155,7 +197,7 @@ data "aws_iam_policy_document" "assume_role" {
     effect  = "Allow"
     principals {
       type        = "Federated"
-      identifiers = [data.aws_iam_openid_connect_provider.oidc.arn]
+      identifiers = [aws_iam_openid_connect_provider.oidc.arn]
     }
     condition {
       test     = "StringEquals"
@@ -185,4 +227,21 @@ resource "aws_iam_role_policy" "fastapi_secrets_policy" {
       }
     ]
   })
+}
+
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "eks-terraform-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+  server_side_encryption {
+    enabled     = true
+    kms_key_arn = aws_kms_key.tf_backend.arn
+  }
+  point_in_time_recovery {
+    enabled = true
+  }
 }
