@@ -152,23 +152,85 @@ jobs:
               body: output
             })
 
-      - name: Importar recursos existentes si es necesario
+      - name: Intentar liberar lock de Terraform si existe
+        working-directory: terraform
         run: |
-          # Importar Secrets Manager si existe
-          if aws secretsmanager describe-secret --secret-id fastapi/api_key > /dev/null 2>&1; then
-            terraform import aws_secretsmanager_secret.api_key fastapi/api_key || true
+          LOCK_ID=$(aws dynamodb scan \
+            --table-name epam-final-terraform-locks \
+            --filter-expression "attribute_exists(LockID)" \
+            --query "Items[0].LockID.S" \
+            --output text)
+          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+            terraform force-unlock -force "$LOCK_ID" || true
+          fi
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+
+      - name: Importar recursos existentes si es necesario
+        working-directory: terraform
+        run: |
+          set -e
+
+          # S3 Bucket para el state
+          if aws s3api head-bucket --bucket epam-final-terraform-state > /dev/null 2>&1; then
+            terraform import aws_s3_bucket.terraform_state epam-final-terraform-state || true
           fi
 
-          # Importar KMS Key si existe
-          KMS_KEY_ID=$(aws kms list-aliases --query "Aliases[?AliasName=='alias/fastapi-key'].TargetKeyId" --output text)
+          # DynamoDB Table para locks
+          if aws dynamodb describe-table --table-name epam-final-terraform-locks > /dev/null 2>&1; then
+            terraform import aws_dynamodb_table.terraform_locks epam-final-terraform-locks || true
+          fi
+
+          # KMS Key (por alias)
+          KMS_KEY_ID=$(aws kms list-aliases --query "Aliases[?AliasName=='alias/eks-encryption-key'].TargetKeyId" --output text)
           if [ ! -z "$KMS_KEY_ID" ]; then
-            terraform import aws_kms_key.fastapi $KMS_KEY_ID || true
+            terraform import module.eks.aws_kms_key.eks $KMS_KEY_ID || true
+            terraform import module.eks.aws_kms_alias.eks alias/eks-encryption-key || true
           fi
 
-          # Importar IAM Role si existe
-          if aws iam get-role --role-name fastapi-role > /dev/null 2>&1; then
-            terraform import aws_iam_role.fastapi fastapi-role || true
+          # IAM Roles
+          if aws iam get-role --role-name eks-cluster-role > /dev/null 2>&1; then
+            terraform import module.eks.aws_iam_role.cluster eks-cluster-role || true
           fi
+          if aws iam get-role --role-name eks-node-role > /dev/null 2>&1; then
+            terraform import module.eks.aws_iam_role.node eks-node-role || true
+          fi
+          if aws iam get-role --role-name fastapi-sa-role > /dev/null 2>&1; then
+            terraform import module.eks.aws_iam_role.fastapi_sa fastapi-sa-role || true
+          fi
+          if aws iam get-role --role-name vpc-flow-log-role > /dev/null 2>&1; then
+            terraform import module.vpc.aws_iam_role.flow_log vpc-flow-log-role || true
+          fi
+
+          # Secrets Manager
+          if aws secretsmanager describe-secret --secret-id fastapi/api_key2 > /dev/null 2>&1; then
+            terraform import module.eks.aws_secretsmanager_secret.api_key fastapi/api_key2 || true
+          fi
+
+          # Subnets públicas
+          for i in 1 2; do
+            SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=public-subnet-$i" --query "Subnets[0].SubnetId" --output text)
+            if [ "$SUBNET_ID" != "None" ]; then
+              terraform import "module.vpc.aws_subnet.public[$((i-1))]" $SUBNET_ID || true
+            fi
+          done
+
+          # Subnets privadas
+          for i in 1 2; do
+            SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=private-subnet-$i" --query "Subnets[0].SubnetId" --output text)
+            if [ "$SUBNET_ID" != "None" ]; then
+              terraform import "module.vpc.aws_subnet.private[$((i-1))]" $SUBNET_ID || true
+            fi
+          done
+
+          # CloudWatch Log Group para VPC Flow Logs
+          if aws logs describe-log-groups --log-group-name-prefix /aws/vpc/flow-logs | grep /aws/vpc/flow-logs > /dev/null 2>&1; then
+            terraform import module.vpc.aws_cloudwatch_log_group.flow_log /aws/vpc/flow-logs || true
+          fi
+
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
