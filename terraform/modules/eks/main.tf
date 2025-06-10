@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_eks_cluster" "main" {
   name     = "my-eks-cluster"
   role_arn = aws_iam_role.cluster.arn
@@ -35,6 +37,35 @@ resource "aws_kms_key" "eks" {
   description             = "KMS key for EKS cluster encryption"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Id": "key-default-1",
+  "Statement": [
+    {
+      "Sid": "Allow administration of the key",
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root" },
+      "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow CloudWatch Logs to use the key",
+      "Effect": "Allow",
+      "Principal": { "Service": "logs.amazonaws.com" },
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
 
   tags = {
     Name = "eks-encryption-key"
@@ -132,7 +163,7 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 
 # Secret en AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
-  name       = "fastapi/api_key"
+  name       = "fastapi/api_key2"
   kms_key_id = aws_kms_key.eks.arn
 }
 

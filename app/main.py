@@ -23,7 +23,7 @@ async def get_secret():
     Retrieve the API key from AWS Secrets Manager.
     The secret must be stored as a JSON with the key 'API_KEY'.
     """
-    secret_name = "fastapi/api_key"
+    secret_name = "fastapi/api_key2"
     region_name = os.environ.get("AWS_REGION", "us-east-1")
     session = boto3.session.Session()
     client = session.client(service_name='secretsmanager', region_name=region_name)
