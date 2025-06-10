@@ -141,14 +141,21 @@ resource "aws_secretsmanager_secret_version" "api_key_version" {
   secret_string = jsonencode({ API_KEY = var.api_key })
 }
 
-# IAM Role para ServiceAccount (IRSA)
+# OIDC provider data source to get the ARN
+# This should be placed before the data.aws_iam_policy_document.assume_role
+
+data "aws_iam_openid_connect_provider" "oidc" {
+  url = aws_eks_cluster.main.identity[0].oidc[0].issuer
+}
+
+# IAM Role for ServiceAccount (IRSA)
 data "aws_iam_policy_document" "assume_role" {
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
     effect  = "Allow"
     principals {
       type        = "Federated"
-      identifiers = [aws_eks_cluster.main.identity[0].oidc[0].issuer]
+      identifiers = [data.aws_iam_openid_connect_provider.oidc.arn]
     }
     condition {
       test     = "StringEquals"

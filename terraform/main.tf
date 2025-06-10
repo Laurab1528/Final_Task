@@ -39,10 +39,4 @@ data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
 }
 
-resource "helm_release" "fastapi_app" {
-  name             = "fastapi-app"
-  chart            = "../helm/fastapi-app"
-  values           = [file("../helm/fastapi-app/values-prod.yaml")]
-  namespace        = "production"
-  create_namespace = true
-} 
+# The Helm deployment for fastapi-app should be done in a separate workflow/job after the EKS cluster is ready and reachable. 
