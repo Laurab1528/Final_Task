@@ -10,14 +10,20 @@
 *.tfstate.*
 .terraform.lock.hcl
 
-# Python
+# Python bytecode
 __pycache__/
 *.py[cod]
 *$py.class
-*.so
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Distribution / packaging
 .Python
 build/
-develop-eggs/
 dist/
 downloads/
 eggs/
@@ -32,13 +38,7 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual Environment
-venv/
-ENV/
-env/
-.venv/
-
-# IDE
+# IDEs and editors
 .idea/
 .vscode/
 *.swp
@@ -63,4 +63,7 @@ coverage.xml
 .hypothesis/
 
 # Secrets
-.secrets 
+.secrets
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/ 
