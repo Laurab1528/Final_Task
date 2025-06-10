@@ -209,6 +209,23 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
+      - name: Try to release Terraform lock if exists (before import)
+        working-directory: terraform
+        run: |
+          LOCK_ID=$(aws dynamodb scan \
+            --table-name epam-final-terraform-locks \
+            --filter-expression "attribute_exists(LockID)" \
+            --query "Items[0].LockID.S" \
+            --output text)
+          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+            terraform force-unlock -force "$LOCK_ID" || true
+          fi
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
+
       - name: Import existing resources if needed
         working-directory: terraform
         run: |
