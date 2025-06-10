@@ -74,8 +74,6 @@ jobs:
             terraform apply -auto-approve \
               -target=aws_s3_bucket.terraform_state \
               -target=aws_dynamodb_table.terraform_locks \
-              -var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-              -var="aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
               -var="api_key=${{ secrets.API_KEY }}" && break
 
             echo "Apply failed, retrying in 10 seconds (attempt $i of 3)..."
@@ -126,8 +124,6 @@ jobs:
           cd terraform
           cat > terraform.tfvars <<EOF
           aws_region = "${{ env.AWS_REGION }}"
-          aws_access_key_id = "${{ secrets.AWS_ACCESS_KEY_ID }}"
-          aws_secret_access_key = "${{ secrets.AWS_SECRET_ACCESS_KEY }}"
           api_key = "${{ secrets.API_KEY }}"
           EOF
 
@@ -302,8 +298,6 @@ jobs:
         run: |
           cd terraform
           terraform apply -auto-approve \
-            -var="aws_access_key_id=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-            -var="aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
             -var="api_key=${{ secrets.API_KEY }}"
 
       - name: Clean up Terraform Variables File
