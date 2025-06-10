@@ -21,7 +21,6 @@ terraform {
       version = "~> 2.12"
     }
   }
-
 }
 
 # VPC para EKS
@@ -36,8 +35,6 @@ module "eks" {
   private_subnet_ids = module.vpc.private_subnet_ids
   public_subnet_ids  = module.vpc.public_subnet_ids
 }
-
-
 
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
