@@ -58,10 +58,32 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
-      - name: Apply only backend resources
+      - name: Apply only backend resources (con retry y unlock)
         working-directory: terraform
         run: |
-          terraform apply -auto-approve -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks
+          for i in 1 2 3; do
+            # Intentar liberar lock antes de cada intento
+            LOCK_ID=$(aws dynamodb scan \
+              --table-name epam-final-terraform-locks \
+              --filter-expression "attribute_exists(LockID)" \
+              --query "Items[0].LockID.S" \
+              --output text)
+            if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+              terraform force-unlock -force "$LOCK_ID" || true
+            fi
+
+            # Intentar apply
+            terraform apply -auto-approve -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks && break
+
+            # Si falla, esperar y reintentar
+            echo "Apply falló, reintentando en 10 segundos (intento $i de 3)..."
+            sleep 10
+          done
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
   # 2. El resto de tu pipeline original, que depende del backend
   terraform:
