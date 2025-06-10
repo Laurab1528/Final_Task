@@ -72,10 +72,9 @@ jobs:
               terraform force-unlock -force "$LOCK_ID" || true
             fi
 
-            # Intentar apply
-            terraform apply -auto-approve -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks && break
+            # Intentar apply (pasa la variable api_key)
+            terraform apply -auto-approve -target=aws_s3_bucket.terraform_state -target=aws_dynamodb_table.terraform_locks -var="api_key=${{ secrets.API_KEY }}" && break
 
-            # Si falla, esperar y reintentar
             echo "Apply falló, reintentando en 10 segundos (intento $i de 3)..."
             sleep 10
           done
@@ -282,7 +281,7 @@ jobs:
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           cd terraform
-          terraform apply -auto-approve
+          terraform apply -auto-approve -var="api_key=${{ secrets.API_KEY }}"
 
       - name: Clean up Terraform Variables File
         if: always()
