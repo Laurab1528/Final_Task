@@ -40,9 +40,9 @@ data "aws_eks_cluster_auth" "cluster" {
 }
 # --- TEMPORARY: Only create backend resources (S3 and DynamoDB) in the first apply ---
 # Comment out all other resources below this line for the initial apply
-# S3 bucket for Terraform state
+# S3 bucket para Terraform state
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "${var.project_name}-terraform-state"
+  bucket        = "${var.project_name}-terraform-state"
   force_destroy = true
   server_side_encryption_configuration {
     rule {
@@ -56,6 +56,39 @@ resource "aws_s3_bucket" "terraform_state" {
   }
 }
 
+# Bloquea el acceso público al bucket S3
+resource "aws_s3_bucket_public_access_block" "terraform_state" {
+  bucket                  = aws_s3_bucket.terraform_state.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+# Bucket para logs del bucket de state
+resource "aws_s3_bucket" "logs" {
+  bucket = "${var.project_name}-logs"
+  force_destroy = true
+  server_side_encryption_configuration {
+    rule {
+      apply_server_side_encryption_by_default {
+        sse_algorithm = "AES256"
+      }
+    }
+  }
+  tags = {
+    Name = "Terraform Logs Bucket"
+  }
+}
+
+# Logging para el bucket de state
+resource "aws_s3_bucket_logging" "terraform_state" {
+  bucket        = aws_s3_bucket.terraform_state.id
+  target_bucket = aws_s3_bucket.logs.id
+  target_prefix = "log/"
+}
+
+# Versionado del bucket
 resource "aws_s3_bucket_versioning" "terraform_state_versioning" {
   bucket = aws_s3_bucket.terraform_state.id
   versioning_configuration {
@@ -71,6 +104,14 @@ resource "aws_dynamodb_table" "terraform_locks" {
   attribute {
     name = "LockID"
     type = "S"
+  }
+  # Cifrado en reposo
+  server_side_encryption {
+    enabled = true
+  }
+  # Point-in-time recovery
+  point_in_time_recovery {
+    enabled = true
   }
   tags = {
     Name = "Terraform State Lock Table"
