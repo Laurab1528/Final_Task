@@ -12,4 +12,9 @@ variable "aws_access_key_id" {
 variable "aws_secret_access_key" {
   description = "AWS Secret Access Key"
   type        = string
+}
+
+variable "api_key" {
+  description = "API Key para la aplicación FastAPI"
+  type        = string
 } 

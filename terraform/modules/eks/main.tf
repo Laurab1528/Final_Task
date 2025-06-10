@@ -138,7 +138,7 @@ resource "aws_secretsmanager_secret" "api_key" {
 
 resource "aws_secretsmanager_secret_version" "api_key_version" {
   secret_id     = aws_secretsmanager_secret.api_key.id
-  secret_string = jsonencode({ API_KEY = "supersecretapikey" })
+  secret_string = jsonencode({ API_KEY = var.api_key })
 }
 
 # IAM Role para ServiceAccount (IRSA)
