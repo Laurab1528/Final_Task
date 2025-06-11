@@ -15,4 +15,4 @@ service:
   port: 80
 env:
   LOG_LEVEL: "DEBUG"
-  roleArn: arn:aws:iam::992382757725:role/fastapi-sa-role 
+  roleArn: arn:aws:iam::579177902857:role/fastapi-sa-role 
