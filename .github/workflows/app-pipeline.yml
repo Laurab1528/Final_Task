@@ -6,11 +6,13 @@ on:
     paths:
       - 'app/**'
       - 'helm/**'
+      - '.github/workflows/app-pipeline.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'app/**'
       - 'helm/**'
+      - '.github/workflows/app-pipeline.yml'
 
 env:
   AWS_REGION: us-east-1

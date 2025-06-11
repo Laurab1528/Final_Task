@@ -5,10 +5,12 @@ on:
     branches: [ main ]
     paths:
       - 'terraform/**'
+      - '.github/workflows/infrastructure-pipeline.yml'
   pull_request:
     branches: [ main ]
     paths:
       - 'terraform/**'
+      - '.github/workflows/infrastructure-pipeline.yml'
 
 permissions:
   contents: read
