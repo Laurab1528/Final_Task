@@ -111,6 +111,7 @@ jobs:
         helm upgrade --install fastapi-app ./helm/fastapi-app \
           --namespace production \
           --create-namespace \
+          -f helm/fastapi-app/values-prod.yaml \
           --set image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
           --set image.tag=${{ github.sha }} \
           --wait 
