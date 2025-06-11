@@ -7,12 +7,10 @@ on:
       - 'app/**'
       - 'helm/**'
       - '.github/workflows/app-pipeline.yml'
-  push:
-    branches: [ main ]
-    paths:
-      - 'app/**'
-      - 'helm/**'
-      - '.github/workflows/app-pipeline.yml'
+  workflow_run:
+    workflows: ["Infrastructure Pipeline"]
+    types:
+      - completed
 
 env:
   AWS_REGION: us-east-1
@@ -44,7 +42,7 @@ jobs:
     name: "Build and Push Docker Image to ECR"
     needs: test-and-build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
@@ -69,7 +67,7 @@ jobs:
     name: "Deploy to EKS with Helm"
     needs: build-and-push
     runs-on: self-hosted
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
