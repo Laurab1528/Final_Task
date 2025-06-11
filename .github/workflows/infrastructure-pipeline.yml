@@ -23,9 +23,45 @@ env:
   TFLINT_VERSION: "v0.44.1"
 
 jobs:
+  install-alb-controller:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name my-eks-cluster --region ${{ env.AWS_REGION }}
+
+      - name: Install CRDs for AWS Load Balancer Controller
+        run: |
+          kubectl apply -k "github.com/aws/eks-charts/stable/aws-load-balancer-controller//crds?ref=master"
+
+      - name: Add EKS Helm repo
+        run: |
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+
+      - name: Install AWS Load Balancer Controller
+        run: |
+          helm upgrade -i aws-load-balancer-controller eks/aws-load-balancer-controller \
+            -n kube-system \
+            --set clusterName=my-eks-cluster \
+            --set serviceAccount.create=false \
+            --set serviceAccount.name=aws-load-balancer-controller \
+            --set region=${{ env.AWS_REGION }} \
+            --set vpcId=$(aws eks describe-cluster --name my-eks-cluster --region ${{ env.AWS_REGION }} --query "cluster.resourcesVpcConfig.vpcId" --output text)
+
   # 1. Create remote backend (only S3 and DynamoDB)
   create-backend:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v3
       - name: Set up Terraform
@@ -93,7 +129,7 @@ jobs:
 
   # 2. The rest of your original pipeline, which depends on the backend
   terraform:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: create-backend
     steps:
       - uses: actions/checkout@v3
