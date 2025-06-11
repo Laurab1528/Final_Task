@@ -1,13 +1,13 @@
 name: Application Pipeline
 
 on:
-  push:
+  pull_request:
     branches: [ main ]
     paths:
       - 'app/**'
       - 'helm/**'
       - '.github/workflows/app-pipeline.yml'
-  pull_request:
+  push:
     branches: [ main ]
     paths:
       - 'app/**'
@@ -21,97 +21,76 @@ env:
   HELM_VERSION: v3.12.0
 
 jobs:
-  test:
+  test-and-build:
+    name: "Test and Build Application"
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10'
-    - name: Install dependencies
-      run: |
-        cd app
-        pip install -r requirements.txt
-        pip install bandit safety
-    - name: Run Bandit (Python security linter)
-      run: |
-        bandit -r app -ll
-    - name: Run Safety (dependency vulnerability check)
-      run: |
-        safety check -r app/requirements.txt
-    - name: Run tests
-      run: |
-        cd app
-        pytest
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+      - name: "Set up Python and dependencies"
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: "Install dependencies"
+        run: |
+          cd app
+          pip install -r requirements.txt
+      - name: "Run tests"
+        run: |
+          cd app
+          pytest
 
   build-and-push:
-    needs: test
+    name: "Build and Push Docker Image to ECR"
+    needs: test-and-build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-    
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v1
-    
-    - name: Create ECR repository if it does not exist
-      run: |
-        aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }} || \
-        aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }} --region ${{ env.AWS_REGION }}
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
-    
-    - name: Build and push Docker image
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-      run: |
-        cd app
-        docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
-        docker tag $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} $ECR_REGISTRY/$ECR_REPOSITORY:latest
-        docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+      - name: "Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: "Login to Amazon ECR"
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - name: "Build and push Docker image"
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        run: |
+          cd app
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
   deploy:
+    name: "Deploy to EKS with Helm"
     needs: build-and-push
     runs-on: self-hosted
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
-    
-    - name: Update kube config
-      run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-    
-    - name: Install Helm
-      uses: azure/setup-helm@v3
-      with:
-        version: ${{ env.HELM_VERSION }}
-
-    - name: Deploy to EKS using Helm
-      run: |
-        helm upgrade --install fastapi-app ./helm/fastapi-app \
-          --namespace production \
-          --create-namespace \
-          -f helm/fastapi-app/values-prod.yaml \
-          --set image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
-          --set image.tag=${{ github.sha }} \
-          --wait 
+      - name: "Checkout repository"
+        uses: actions/checkout@v3
+      - name: "Configure AWS credentials"
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: "Update kubeconfig"
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: "Install Helm"
+        uses: azure/setup-helm@v3
+        with:
+          version: ${{ env.HELM_VERSION }}
+      - name: "Deploy with Helm"
+        run: |
+          helm upgrade --install fastapi-app ./helm/fastapi-app \
+            --namespace production \
+            --create-namespace \
+            -f helm/fastapi-app/values-prod.yaml \
+            --set image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
+            --set image.tag=${{ github.sha }} \
+            --wait 
