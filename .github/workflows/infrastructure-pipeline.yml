@@ -64,14 +64,16 @@ jobs:
         working-directory: terraform
         run: |
           for i in 1 2 3; do
-            LOCK_ID=$(aws dynamodb scan \
+            LOCK_IDS=$(aws dynamodb scan \
               --table-name epam-final-terraform-locks \
               --filter-expression "attribute_exists(LockID)" \
-              --query "Items[0].LockID.S" \
+              --query "Items[].LockID.S" \
               --output text)
-            if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
-              terraform force-unlock -force "$LOCK_ID" || true
-            fi
+            for LOCK_ID in $LOCK_IDS; do
+              if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+                terraform force-unlock -force "$LOCK_ID" || true
+              fi
+            done
 
             terraform apply -auto-approve \
               -target=aws_s3_bucket.terraform_state \
@@ -212,17 +214,19 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
-      - name: Try to release Terraform lock if exists (before import)
+      - name: Try to release ALL Terraform locks if exist (before import)
         working-directory: terraform
         run: |
-          LOCK_ID=$(aws dynamodb scan \
+          LOCK_IDS=$(aws dynamodb scan \
             --table-name epam-final-terraform-locks \
             --filter-expression "attribute_exists(LockID)" \
-            --query "Items[0].LockID.S" \
+            --query "Items[].LockID.S" \
             --output text)
-          if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
-            terraform force-unlock -force "$LOCK_ID" || true
-          fi
+          for LOCK_ID in $LOCK_IDS; do
+            if [ "$LOCK_ID" != "None" ] && [ "$LOCK_ID" != "" ]; then
+              terraform force-unlock -force "$LOCK_ID" || true
+            fi
+          done
         shell: bash
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -236,45 +240,45 @@ jobs:
 
           # S3 Bucket for state
           if aws s3api head-bucket --bucket epam-final-terraform-state > /dev/null 2>&1; then
-            echo "Importando S3 bucket de estado..."
+            echo "Importing S3 state bucket..."
             terraform import aws_s3_bucket.terraform_state epam-final-terraform-state || true
           fi
 
           # DynamoDB Table for locks
           if aws dynamodb describe-table --table-name epam-final-terraform-locks > /dev/null 2>&1; then
-            echo "Importando DynamoDB table de locks..."
+            echo "Importing DynamoDB lock table..."
             terraform import aws_dynamodb_table.terraform_locks epam-final-terraform-locks || true
           fi
 
           # KMS Key (by alias)
           KMS_KEY_ID=$(aws kms list-aliases --query "Aliases[?AliasName=='alias/eks-encryption-key'].TargetKeyId" --output text)
           if [ ! -z "$KMS_KEY_ID" ] && [ "$KMS_KEY_ID" != "None" ]; then
-            echo "Importando KMS Key y Alias..."
+            echo "Importing KMS Key and Alias..."
             terraform import module.eks.aws_kms_key.eks $KMS_KEY_ID || true
             terraform import module.eks.aws_kms_alias.eks alias/eks-encryption-key || true
           fi
 
           # IAM Roles
           if aws iam get-role --role-name eks-cluster-role > /dev/null 2>&1; then
-            echo "Importando IAM Role eks-cluster-role..."
+            echo "Importing IAM Role eks-cluster-role..."
             terraform import module.eks.aws_iam_role.cluster eks-cluster-role || true
           fi
           if aws iam get-role --role-name eks-node-role > /dev/null 2>&1; then
-            echo "Importando IAM Role eks-node-role..."
+            echo "Importing IAM Role eks-node-role..."
             terraform import module.eks.aws_iam_role.node eks-node-role || true
           fi
           if aws iam get-role --role-name fastapi-sa-role > /dev/null 2>&1; then
-            echo "Importando IAM Role fastapi-sa-role..."
+            echo "Importing IAM Role fastapi-sa-role..."
             terraform import module.eks.aws_iam_role.fastapi_sa fastapi-sa-role || true
           fi
           if aws iam get-role --role-name vpc-flow-log-role > /dev/null 2>&1; then
-            echo "Importando IAM Role vpc-flow-log-role..."
+            echo "Importing IAM Role vpc-flow-log-role..."
             terraform import module.vpc.aws_iam_role.flow_log vpc-flow-log-role || true
           fi
 
           # Secrets Manager
           if aws secretsmanager describe-secret --secret-id fastapi/api_key2 > /dev/null 2>&1; then
-            echo "Importando Secret fastapi/api_key2..."
+            echo "Importing Secret fastapi/api_key2..."
             terraform import module.eks.aws_secretsmanager_secret.api_key fastapi/api_key2 || true
           fi
 
@@ -282,7 +286,7 @@ jobs:
           for i in 1 2; do
             SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=public-subnet-$i" --query "Subnets[0].SubnetId" --output text)
             if [ "$SUBNET_ID" != "None" ]; then
-              echo "Importando Subnet pública $i..."
+              echo "Importing public Subnet $i..."
               terraform import "module.vpc.aws_subnet.public[$((i-1))]" $SUBNET_ID || true
             fi
           done
@@ -291,14 +295,14 @@ jobs:
           for i in 1 2; do
             SUBNET_ID=$(aws ec2 describe-subnets --filters "Name=tag:Name,Values=private-subnet-$i" --query "Subnets[0].SubnetId" --output text)
             if [ "$SUBNET_ID" != "None" ]; then
-              echo "Importando Subnet privada $i..."
+              echo "Importing private Subnet $i..."
               terraform import "module.vpc.aws_subnet.private[$((i-1))]" $SUBNET_ID || true
             fi
           done
 
           # CloudWatch Log Group for VPC Flow Logs
           if aws logs describe-log-groups --log-group-name-prefix /aws/vpc/flow-logs | grep /aws/vpc/flow-logs > /dev/null 2>&1; then
-            echo "Importando Log Group de VPC Flow Logs..."
+            echo "Importing VPC Flow Logs Log Group..."
             terraform import module.vpc.aws_cloudwatch_log_group.flow_log /aws/vpc/flow-logs || true
           fi
 
@@ -306,21 +310,21 @@ jobs:
           NODEGROUP_NAME="main"
           CLUSTER_NAME="my-eks-cluster"
           if aws eks describe-nodegroup --cluster-name $CLUSTER_NAME --nodegroup-name $NODEGROUP_NAME > /dev/null 2>&1; then
-            echo "Importando EKS Node Group $NODEGROUP_NAME..."
+            echo "Importing EKS Node Group $NODEGROUP_NAME..."
             terraform import module.eks.aws_eks_node_group.main $CLUSTER_NAME:$NODEGROUP_NAME || true
           fi
 
           # NAT Gateway
           NAT_GW_ID=$(aws ec2 describe-nat-gateways --filter "Name=state,Values=available" --query "NatGateways[0].NatGatewayId" --output text)
           if [ "$NAT_GW_ID" != "None" ] && [ "$NAT_GW_ID" != "" ]; then
-            echo "Importando NAT Gateway..."
+            echo "Importing NAT Gateway..."
             terraform import module.vpc.aws_nat_gateway.main $NAT_GW_ID || true
           fi
 
-          # EIP para NAT Gateway
+          # EIP for NAT Gateway
           EIP_ALLOC_ID=$(aws ec2 describe-addresses --query "Addresses[?AssociationId!=null].AllocationId" --output text)
           if [ "$EIP_ALLOC_ID" != "None" ] && [ "$EIP_ALLOC_ID" != "" ]; then
-            echo "Importando EIP para NAT Gateway..."
+            echo "Importing EIP for NAT Gateway..."
             terraform import module.vpc.aws_eip.nat $EIP_ALLOC_ID || true
           fi
         shell: bash
@@ -329,12 +333,15 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: ${{ env.AWS_REGION }}
 
+      - name: Debug terraform.tfvars
+        run: |
+          cat terraform/terraform.tfvars
+
       - name: Terraform Apply
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
         run: |
           cd terraform
-          terraform apply -auto-approve \
-            -var="api_key=${{ secrets.API_KEY }}"
+          terraform apply -auto-approve
 
       - name: Clean up Terraform Variables File
         if: always()
