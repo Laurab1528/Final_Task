@@ -3,9 +3,6 @@ name: Infrastructure Pipeline
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'terraform/**'
-      - '.github/workflows/infrastructure-pipeline.yml'
 
 env:
   AWS_REGION: us-east-1

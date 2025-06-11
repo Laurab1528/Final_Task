@@ -73,14 +73,37 @@ This project implements a complete, production-grade CI/CD solution for deployin
 
 ---
 
-## CI/CD y Automatización
+## CI/CD Workflow Overview
 
-- **Pipeline de infraestructura:**
-  - Crea/verifica backend (S3, DynamoDB), infraestructura y el controller ALB.
-  - Aplica cambios de Terraform y asegura que el clúster esté listo para Ingress/ALB.
-- **Pipeline de aplicación:**
-  - Ejecuta tests, build, push a ECR y despliega a EKS usando Helm.
-  - El Ingress de la app crea/actualiza el ALB automáticamente.
+### 1. Pull Request (PR)
+- Only the `test-and-build` job from `app-pipeline.yml` runs.
+- This job checks out the code, installs dependencies, and runs tests.
+- **No image is built or pushed, and no deployment or infrastructure changes are made.**
+
+### 2. Merge to `main` (push to main)
+- **Step 1: Infrastructure Pipeline**
+  - The `infrastructure-pipeline.yml` workflow runs on every push to `main`.
+  - It provisions or updates all AWS infrastructure (EKS cluster, VPC, subnets, IAM roles, etc.) using Terraform.
+  - **No application is deployed at this stage.**
+- **Step 2: Application Pipeline**
+  - When the infrastructure pipeline completes successfully, the `app-pipeline.yml` workflow is triggered automatically (via `workflow_run`).
+  - It builds and pushes the Docker image to ECR.
+  - Then, it deploys the application to the EKS cluster using Helm.
+
+### Visual Summary
+
+```mermaid
+flowchart TD
+    A[Pull Request] --> B[App Pipeline: Test and Build]
+    C[Merge to main] --> D[Infrastructure Pipeline: Terraform]
+    D --> E[App Pipeline: Build and Push Docker Image]
+    E --> F[App Pipeline: Deploy to EKS with Helm]
+```
+
+### Key Points
+- The application is never deployed and the infrastructure is never changed on PRs.
+- The deployment of the app only happens if the infrastructure was created/updated successfully.
+- The order is always: **infrastructure first, then application deployment**.
 
 ---
 
