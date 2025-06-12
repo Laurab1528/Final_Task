@@ -20,7 +20,7 @@ terraform {
   }
 }
 
-# VPC para EKS
+# VPC EKS
 module "vpc" {
   source      = "./modules/vpc"
   kms_key_arn = module.eks.kms_key_arn
