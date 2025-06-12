@@ -150,7 +150,7 @@ flowchart TD
 
 ---
 
-## Want to contribute?
+## Want to contribute ?
 
 If you want to contribute to this project, please check the contribution guide at [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) to learn about the rules, workflow, and best practices.
 

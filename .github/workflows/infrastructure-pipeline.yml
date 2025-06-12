@@ -52,8 +52,8 @@ jobs:
       - name: "Plan infrastructure changes"
         run: |
           cd terraform
-          terraform plan
+          terraform plan -lock=false
       - name: "Apply infrastructure changes"
         run: |
           cd terraform
-          terraform apply -auto-approve
+          terraform apply -auto-approve -lock=false
