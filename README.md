@@ -5,13 +5,13 @@ This project implements a complete, production-grade CI/CD solution for deployin
 
 ---
 
-## Arquitectura y Componentes Clave
+## Architecture and Key Components
 
-- **VPC** con subredes públicas y privadas.
-- **EKS Cluster** en subredes privadas.
-- **Application Load Balancer (ALB)** en subred pública, enruta tráfico externo a los pods de la app en privadas.
-- **AWS Load Balancer Controller** instalado automáticamente desde el pipeline de infraestructura (no requiere instalación manual en el runner).
-- **GitHub Actions** para CI/CD, con un runner self-hosted en la VPC solo para acceso privado al API de EKS (no para exponer el ALB).
+- **VPC** with public and private subnets.
+- **EKS Cluster** in private subnets.
+- **Application Load Balancer (ALB)** in a public subnet, routing external traffic to app pods in private subnets.
+- **AWS Load Balancer Controller** automatically installed from the infrastructure pipeline (no manual installation required on the runner).
+- **GitHub Actions** for CI/CD, with a self-hosted runner in the VPC only for private access to the EKS API (not to expose the ALB).
 
 ---
 
@@ -36,15 +36,15 @@ This project implements a complete, production-grade CI/CD solution for deployin
 
 ---
 
-## Infraestructura y Despliegue
+## Infrastructure and Deployment
 
-1. **Configura las credenciales de AWS** en GitHub Secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`).
-2. **Despliega la infraestructura y el controller automáticamente:**
-   - El pipeline de infraestructura crea la VPC, subredes, EKS, roles, S3, DynamoDB, etc.
-   - El job `install-alb-controller` instala el AWS Load Balancer Controller en el clúster EKS, permitiendo que los Ingress de Kubernetes creen y gestionen un ALB público.
-3. **Despliega la aplicación:**
-   - El pipeline de aplicación construye la imagen, la sube a ECR y la despliega a EKS usando Helm.
-   - El Ingress de la app está configurado para usar el ALB, que enruta tráfico externo a los pods privados.
+1. **Configure AWS credentials** in GitHub Secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`).
+2. **Deploy the infrastructure and the controller automatically:**
+   - The infrastructure pipeline creates the VPC, subnets, EKS, roles, S3, DynamoDB, etc.
+   - The `install-alb-controller` job installs the AWS Load Balancer Controller in the EKS cluster, allowing Kubernetes Ingress to create and manage a public ALB.
+3. **Deploy the application:**
+   - The application pipeline builds the image, pushes it to ECR, and deploys it to EKS using Helm.
+   - The app's Ingress is configured to use the ALB, which routes external traffic to the private pods.
 
 ---
 
@@ -107,18 +107,18 @@ flowchart TD
 
 ---
 
-## Notas sobre el Runner Self-hosted
+## Notes on the Self-hosted Runner
 
-- El runner self-hosted se usa únicamente para acceder al API privado de EKS y ejecutar despliegues.
-- **No es necesario instalar manualmente el AWS Load Balancer Controller en el runner:** el pipeline lo instala automáticamente en el clúster.
-- El ALB es gestionado por el controller y expone la app de forma segura.
+- The self-hosted runner is used only to access the private EKS API and execute deployments.
+- **It is not necessary to manually install the AWS Load Balancer Controller on the runner:** the pipeline installs it automatically in the cluster.
+- The ALB is managed by the controller and securely exposes the app.
 
 ---
 
 ## Accessing the Application
 
-- **URL pública:**
-  - El Application Load Balancer (ALB) es el único punto de entrada público. Encuentra el DNS del ALB en la consola de AWS.
+- **Public URL:**
+  - The Application Load Balancer (ALB) is the only public entry point. Find the ALB DNS in the AWS console.
 - **Health check:**
   - `curl http://<alb-dns>/health`
 - **API endpoint:**
@@ -128,12 +128,12 @@ flowchart TD
 
 ## Security and Best Practices
 
-- Todos los secretos se gestionan con GitHub Secrets.
-- El API de EKS es privado; los despliegues usan un runner self-hosted en la VPC.
-- El ALB es público, pero los pods y nodos están en subredes privadas.
-- Infraestructura escaneada con tfsec y tflint.
-- IAM con privilegios mínimos.
-- El AWS Load Balancer Controller se instala automáticamente desde el pipeline.
+- All secrets are managed with GitHub Secrets.
+- The EKS API is private; deployments use a self-hosted runner in the VPC.
+- The ALB is public, but pods and nodes are in private subnets.
+- Infrastructure is scanned with tfsec and tflint.
+- IAM with least privilege.
+- The AWS Load Balancer Controller is installed automatically from the pipeline.
 
 ---
 
@@ -150,9 +150,9 @@ flowchart TD
 
 ---
 
-## ¿Quieres contribuir?
+## Want to contribute?
 
-Si deseas contribuir a este proyecto, por favor revisa la guía de contribución en [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) para conocer las normas, el flujo de trabajo y las mejores prácticas.
+If you want to contribute to this project, please check the contribution guide at [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) to learn about the rules, workflow, and best practices.
 
 ---
 
