@@ -52,7 +52,7 @@ jobs:
       - name: "Plan infrastructure changes"
         run: |
           cd terraform
-          terraform plan -lock=false
+          TF_LOG=DEBUG terraform plan -lock=false
       - name: "Apply infrastructure changes"
         run: |
           cd terraform
