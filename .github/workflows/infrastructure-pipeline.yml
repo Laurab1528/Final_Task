@@ -50,7 +50,7 @@ jobs:
           cat > terraform/terraform.tfvars <<EOF
           api_key    = "${{ secrets.API_KEY }}"
           aws_region = "${{ env.AWS_REGION }}"
-          github_pat = "${{ secrets.GITHUB_PAT }}"
+          github_pat = "${{ secrets.PAT }}"
           EOF
       - name: "Initialize Terraform"
         run: |

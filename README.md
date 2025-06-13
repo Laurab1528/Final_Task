@@ -72,7 +72,7 @@ flowchart TD
 
 ## Infrastructure and Deployment
 
-1. **Configure AWS credentials** in GitHub Secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`).
+1. **Configure AWS credentials** in GitHub Secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`, `PAT`).
 2. **Deploy the infrastructure and the controller automatically:**
    - The infrastructure pipeline creates the VPC, subnets, EKS, roles, S3, DynamoDB, etc.
    - The `install-alb-controller` job installs the AWS Load Balancer Controller in the EKS cluster, allowing Kubernetes Ingress to create and manage a public ALB.
