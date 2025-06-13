@@ -17,7 +17,7 @@ variable "project_name" {
 variable "runner_ami" {
   description = "AMI ID for the runner (Ubuntu 20.04 recommended)"
   type        = string
-  default     = "ami-053b0d53c279acc00"
+  default     = "ami-054d6a336762e438e"
 }
 
 variable "runner_instance_type" {
