@@ -90,7 +90,7 @@ jobs:
       - name: "Wait for EKS API availability"
         run: |
           for i in {1..10}; do
-            if kubectl version --short; then
+            if kubectl get nodes; then
               echo "EKS API is available!"
               break
             else
