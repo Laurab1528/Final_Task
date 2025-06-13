@@ -33,13 +33,4 @@ variable "runner_ami" {
 variable "runner_instance_type" {
   type    = string
   default = "t3.small"
-}
-
-module "runner" {
-  source            = "./modules/ec2"
-  ami               = var.runner_ami
-  instance_type     = var.runner_instance_type
-  subnet_id         = module.vpc.private_subnet_ids[0]
-  security_group_id = aws_security_group.runner.id
-  github_pat        = var.github_pat
 } 
