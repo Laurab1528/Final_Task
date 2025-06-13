@@ -1,18 +1,22 @@
-replicaCount: 3
+# Production values for FastAPI app
+replicaCount: 2
 image:
   repository: fastapi-app
   tag: latest
   pullPolicy: Always
 resources:
   limits:
-    cpu: 400m
-    memory: 512Mi
-  requests:
     cpu: 200m
     memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
 env:
   LOG_LEVEL: "INFO"
-roleArn: arn:aws:iam::579177902857:role/fastapi-sa-role 
+serviceAccount:
+  name: fastapi-sa
+  namespace: production
+  roleArn: arn:aws:iam::579177902857:role/fastapi-sa-role 

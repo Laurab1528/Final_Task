@@ -1,4 +1,4 @@
 variable "kms_key_arn" {
-  description = "ARN de la clave KMS para cifrado de logs"
+  description = "KMS key ARN for VPC flow logs"
   type        = string
 } 
