@@ -8,10 +8,44 @@ This project implements a complete, production-grade CI/CD solution for deployin
 ## Architecture and Key Components
 
 - **VPC** with public and private subnets.
+- **EC2 Runner** in a private subnet, with internet access through a NAT Gateway. This runner is essential for running GitHub Actions pipelines in a private network and accessing GitHub secrets for infrastructure provisioning with Terraform.
 - **EKS Cluster** in private subnets.
 - **Application Load Balancer (ALB)** in a public subnet, routing external traffic to app pods in private subnets.
-- **AWS Load Balancer Controller** automatically installed from the infrastructure pipeline (no manual installation required on the runner).
-- **GitHub Actions** for CI/CD, with a self-hosted runner in the VPC only for private access to the EKS API (not to expose the ALB).
+- **AWS Load Balancer Controller** automatically installed from the infrastructure pipeline.
+- **GitHub Actions** for CI/CD, using the self-hosted runner in the VPC for private access to the EKS API and Terraform execution.
+
+**Important:** The EKS module now explicitly depends on the EC2 runner (`depends_on`), ensuring the runner is available before creating the EKS cluster and resources.
+
+---
+
+## Infrastructure Creation Flow
+
+1. **VPC and subnets:** 2 public and 2 private subnets are created, with route tables and a NAT Gateway for internet access from the private subnets.
+2. **EC2 Runner:** Launched in the first private subnet. Thanks to the NAT Gateway, it can access the internet (GitHub, updates, etc.) without being publicly exposed.
+3. **EKS Cluster:** Created in private subnets, ensuring nodes are not accessible from the internet.
+4. **ALB:** The Kubernetes Ingress creates an ALB in the public subnet, securely exposing the app.
+
+The creation order is guaranteed by the explicit dependency (`depends_on`) between modules.
+
+---
+
+## Visual Flow Summary
+
+```mermaid
+flowchart TD
+    A[VPC and Subnets] --> B[EC2 Runner (private subnet, internet access via NAT GW)]
+    B --> C[EKS Cluster (private subnet)]
+    C --> D[ALB (public subnet, Ingress)]
+    D --> E[Users access the app]
+```
+
+---
+
+## Notes on the EC2 Runner and NAT Gateway
+
+- The EC2 runner is essential for running GitHub Actions pipelines in a private network and accessing GitHub secrets.
+- It does not have a public IP, but can access the internet thanks to the NAT Gateway.
+- It allows Terraform and Helm to run securely and privately, meeting security and architecture requirements.
 
 ---
 
@@ -104,14 +138,6 @@ flowchart TD
 - The application is never deployed and the infrastructure is never changed on PRs.
 - The deployment of the app only happens if the infrastructure was created/updated successfully.
 - The order is always: **infrastructure first, then application deployment**.
-
----
-
-## Notes on the Self-hosted Runner
-
-- The self-hosted runner is used only to access the private EKS API and execute deployments.
-- **It is not necessary to manually install the AWS Load Balancer Controller on the runner:** the pipeline installs it automatically in the cluster.
-- The ALB is managed by the controller and securely exposes the app.
 
 ---
 

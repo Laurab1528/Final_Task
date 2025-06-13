@@ -38,7 +38,7 @@ resource "aws_eks_cluster" "main" {
   ]
 }
 
-# KMS Key para encriptación
+# KMS Key for encryption
 resource "aws_kms_key" "eks" {
   description             = "KMS key for EKS cluster encryption"
   deletion_window_in_days = 7
@@ -104,7 +104,7 @@ resource "aws_eks_node_group" "main" {
   ]
 }
 
-# IAM Role para el Cluster
+# IAM Role for the Cluster
 resource "aws_iam_role" "cluster" {
   name = "eks-cluster-role"
 
@@ -122,7 +122,7 @@ resource "aws_iam_role" "cluster" {
   })
 }
 
-# IAM Role para los Nodos
+# IAM Role for the Nodes
 resource "aws_iam_role" "node" {
   name = "eks-node-role"
 
@@ -140,7 +140,7 @@ resource "aws_iam_role" "node" {
   })
 }
 
-# Políticas para el Cluster
+# Policies for the Cluster
 resource "aws_iam_role_policy_attachment" "cluster_AmazonEKSClusterPolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
   role       = aws_iam_role.cluster.name
@@ -151,7 +151,7 @@ resource "aws_iam_role_policy_attachment" "cluster_AmazonEKSVPCResourceControlle
   role       = aws_iam_role.cluster.name
 }
 
-# Políticas para los Nodos
+# Policies for the Nodes
 resource "aws_iam_role_policy_attachment" "node_AmazonEKSWorkerNodePolicy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
   role       = aws_iam_role.node.name
@@ -167,7 +167,7 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
   role       = aws_iam_role.node.name
 }
 
-# Secret en AWS Secrets Manager
+# Secret in AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
   name       = "fastapi/api_key2"
   kms_key_id = aws_kms_key.eks.arn

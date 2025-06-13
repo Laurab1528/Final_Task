@@ -50,6 +50,7 @@ jobs:
           cat > terraform/terraform.tfvars <<EOF
           api_key    = "${{ secrets.API_KEY }}"
           aws_region = "${{ env.AWS_REGION }}"
+          github_pat = "${{ secrets.GITHUB_PAT }}"
           EOF
       - name: "Initialize Terraform"
         run: |
@@ -67,3 +68,6 @@ jobs:
         if: always()
         run: |
           rm -f terraform/terraform.tfvars
+      - name: "Update kubeconfig for EKS"
+        run: |
+          aws eks update-kubeconfig --region us-east-1 --name my-eks-cluster

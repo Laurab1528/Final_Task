@@ -8,7 +8,7 @@ resource "aws_vpc" "main" {
   }
 }
 
-# Subredes públicas
+# Public subnets
 resource "aws_subnet" "public" {
   count             = 2
   vpc_id            = aws_vpc.main.id
@@ -24,7 +24,7 @@ resource "aws_subnet" "public" {
   }
 }
 
-# Subredes privadas
+# Private subnets
 resource "aws_subnet" "private" {
   count             = 2
   vpc_id            = aws_vpc.main.id
@@ -57,7 +57,7 @@ resource "aws_nat_gateway" "main" {
   }
 }
 
-# Elastic IP para NAT Gateway
+# Elastic IP for NAT Gateway
 resource "aws_eip" "nat" {
   domain = "vpc"
 
@@ -66,7 +66,7 @@ resource "aws_eip" "nat" {
   }
 }
 
-# Tabla de rutas pública
+# Public route table
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
@@ -80,7 +80,7 @@ resource "aws_route_table" "public" {
   }
 }
 
-# Tabla de rutas privada
+# Private route table
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id
 
@@ -94,21 +94,21 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Asociaciones de tablas de rutas públicas
+# Public route table associations
 resource "aws_route_table_association" "public" {
   count          = 2
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
 }
 
-# Asociaciones de tablas de rutas privadas
+# Private route table associations
 resource "aws_route_table_association" "private" {
   count          = 2
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private.id
 }
 
-# Data source para zonas de disponibilidad
+# Data source for availability zones
 data "aws_availability_zones" "available" {
   state = "available"
 }

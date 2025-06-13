@@ -1,19 +1,19 @@
 variable "vpc_id" {
-  description = "VPC ID"
+  description = "VPC ID for the EKS cluster"
   type        = string
 }
 
 variable "private_subnet_ids" {
-  description = "Lista de IDs de subredes privadas"
+  description = "List of private subnet IDs for EKS nodes"
   type        = list(string)
 }
 
 variable "public_subnet_ids" {
-  description = "Lista de IDs de subredes públicas"
+  description = "List of public subnet IDs for ALB and other resources"
   type        = list(string)
 }
 
 variable "api_key" {
-  description = "API Key para la aplicación FastAPI"
+  description = "API Key for the FastAPI application"
   type        = string
 } 

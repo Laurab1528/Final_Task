@@ -1,3 +1,4 @@
+# Development values for FastAPI app
 replicaCount: 1
 image:
   repository: fastapi-app
@@ -15,4 +16,7 @@ service:
   port: 80
 env:
   LOG_LEVEL: "DEBUG"
+serviceAccount:
+  name: fastapi-sa
+  namespace: development
   roleArn: arn:aws:iam::579177902857:role/fastapi-sa-role 

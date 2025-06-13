@@ -82,6 +82,10 @@ jobs:
           aws eks describe-cluster --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
       - name: "Update kubeconfig"
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: "Check EKS connectivity"
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+          kubectl get nodes
       - name: "Install Helm"
         uses: azure/setup-helm@v3
         with:
