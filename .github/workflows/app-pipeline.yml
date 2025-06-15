@@ -13,6 +13,10 @@ on:
       - 'app/**'
       - 'helm/**'
       - '.github/workflows/app-pipeline.yml'
+  workflow_run:
+    workflows: ["Infrastructure Pipeline"]
+    types:
+      - completed
 #env
 env:
   AWS_REGION: us-east-1
