@@ -182,6 +182,16 @@ If you want to contribute to this project, please check the contribution guide a
 
 ---
 
+## Self-hosted Runner Bootstrapping and Monitoring
+
+- The first infrastructure deployment runs on a public GitHub Actions runner (`ubuntu-latest`). This creates all AWS resources, including the EC2 self-hosted runner in the private subnet.
+- **No manual creation of the self-hosted runner is needed.** The EC2 runner is automatically registered as a self-hosted runner using the GitHub PAT secret.
+- After the infrastructure pipeline completes, go to your repository in GitHub → **Settings** → **Actions** → **Runners** and verify that the EC2 runner appears as **'Idle'** or **'Active'**.
+- All subsequent deployments (including application deployment) will use this EC2 self-hosted runner (`runs-on: self-hosted`), ensuring secure access to the private EKS cluster.
+- If you ever need to bootstrap again, just ensure the infrastructure pipeline runs on a public runner for the first deployment.
+
+---
+
 ## License
 
 MIT 
