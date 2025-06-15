@@ -50,16 +50,11 @@ data "aws_eks_cluster_auth" "cluster" {
 # DynamoDB table for state locking
 # resource "aws_dynamodb_table" "terraform_locks" { ... }
 
-variable "runner_subnet_id" {
-  description = "Subnet ID para el runner EC2 (pública en bootstrap, privada en producción)"
-  type        = string
-}
-
 module "runner" {
   source                = "./modules/ec2"
   ami                   = var.runner_ami
   runner_instance_type  = var.runner_instance_type
-  subnet_id             = var.runner_subnet_id
+  subnet_id             = module.vpc.public_subnet_ids[0]
   security_group_id     = aws_security_group.runner.id
   github_pat            = var.github_pat
 }
