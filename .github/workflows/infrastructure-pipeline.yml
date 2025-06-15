@@ -5,16 +5,8 @@ concurrency:
 name: Infrastructure Pipeline
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'terraform/**'
-      - '.github/workflows/infrastructure-pipeline.yml'
   push:
     branches: [ main ]
-    paths:
-      - 'terraform/**'
-      - '.github/workflows/infrastructure-pipeline.yml'
 
 env:
   AWS_REGION: us-east-1
