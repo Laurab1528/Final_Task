@@ -7,11 +7,11 @@ module "vpc" {
 # EKS Cluster
 module "eks" {
   source             = "./modules/eks"
-  vpc_id             = module.vpc.vpc_id
+  vpc_id             = data.aws_vpc.existing.id
+  public_subnet_ids  = [data.aws_subnet.public.id]
   private_subnet_ids = module.vpc.private_subnet_ids
-  public_subnet_ids  = module.vpc.public_subnet_ids
   api_key            = var.api_key
-  depends_on         = [module.runner]
+  depends_on         = []
 }
 
 data "aws_eks_cluster_auth" "cluster" {
@@ -50,14 +50,25 @@ data "aws_eks_cluster_auth" "cluster" {
 # DynamoDB table for state locking
 # resource "aws_dynamodb_table" "terraform_locks" { ... }
 
-module "runner" {
-  source                = "./modules/ec2"
-  ami                   = var.runner_ami
-  runner_instance_type  = var.runner_instance_type
-  subnet_id             = module.vpc.public_subnet_ids[0]
-  security_group_id     = aws_security_group.runner.id
-  github_pat            = var.github_pat
+# Data sources para VPC y subnet pública existentes
+
+data "aws_vpc" "existing" {
+  id = "vpc-0dd081f902c8112b5"
 }
+
+data "aws_subnet" "public" {
+  id = "subnet-0d623f0efa8a6150b"
+}
+
+# Comentar el bloque del runner
+# module "runner" {
+#   source                = "./modules/ec2"
+#   ami                   = var.runner_ami
+#   runner_instance_type  = var.runner_instance_type
+#   subnet_id             = module.vpc.public_subnet_ids[0]
+#   security_group_id     = aws_security_group.runner.id
+#   github_pat            = var.github_pat
+# }
 
 resource "aws_security_group_rule" "eks_from_runner" {
   type                     = "ingress"
