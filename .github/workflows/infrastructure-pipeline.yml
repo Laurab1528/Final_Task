@@ -68,7 +68,7 @@ jobs:
           runner_subnet_id = "${{ steps.get-public-subnet.outputs.value }}"
           EOF
       - name: "Terraform Apply (bootstrap)"
-        run: cd terraform && terraform apply -auto-approve
+        run: cd terraform && terraform apply -target=module.vpc -target=module.runner -auto-approve
       - name: "Delete terraform.tfvars"
         if: always()
         run: rm -f terraform/terraform.tfvars
