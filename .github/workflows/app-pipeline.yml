@@ -3,16 +3,6 @@ name: Application Pipeline
 on:
   pull_request:
     branches: [ main ]
-    paths:
-      - 'app/**'
-      - 'helm/**'
-      - '.github/workflows/app-pipeline.yml'
-  push:
-    branches: [ main ]
-    paths:
-      - 'app/**'
-      - 'helm/**'
-      - '.github/workflows/app-pipeline.yml'
   workflow_run:
     workflows: ["Infrastructure Pipeline"]
     types:
@@ -45,8 +35,7 @@ jobs:
           pytest
 
   build-and-push:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: test-and-build
+    if: github.event_name == 'workflow_run'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repository"
@@ -69,7 +58,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'workflow_run'
     needs: build-and-push
     runs-on: self-hosted
     steps:
@@ -95,10 +84,10 @@ jobs:
         run: |
           for i in {1..10}; do
             if kubectl get nodes; then
-              echo "EKS API is available!"
+              echo "EKS API es disponible!"
               break
             else
-              echo "Waiting for EKS API... ($i/10)"
+              echo "Esperando por EKS API... ($i/10)"
               sleep 30
             fi
           done
