@@ -62,8 +62,14 @@ jobs:
           EOF
       - name: "Terraform Init"
         run: cd terraform && terraform init
-      - name: "Terraform Apply (bootstrap)"
-        run: cd terraform && terraform apply -target=module.vpc -target=module.runner -auto-approve
+      - name: "Terraform Apply (VPC)"
+        run: cd terraform && terraform apply -target=module.vpc -auto-approve
+      - name: "Get public subnet id"
+        id: get-public-subnet
+        run: |
+          echo "value=$(cd terraform && terraform output -json public_subnet_ids | jq -r '.[0]')" >> $GITHUB_OUTPUT
+      - name: "Terraform Apply (runner)"
+        run: cd terraform && terraform apply -target=module.runner -auto-approve -var="runner_subnet_id=${{ steps.get-public-subnet.outputs.value }}"
       - name: "Delete terraform.tfvars"
         if: always()
         run: rm -f terraform/terraform.tfvars
@@ -110,8 +116,12 @@ jobs:
           EOF
       - name: "Terraform Init"
         run: cd terraform && terraform init
+      - name: "Get private subnet id"
+        id: get-private-subnet
+        run: |
+          echo "value=$(cd terraform && terraform output -json private_subnet_ids | jq -r '.[0]')" >> $GITHUB_OUTPUT
       - name: "Terraform Apply (full infra)"
-        run: cd terraform && terraform apply -auto-approve
+        run: cd terraform && terraform apply -auto-approve -var="runner_subnet_id=${{ steps.get-private-subnet.outputs.value }}"
       - name: "Delete terraform.tfvars"
         if: always()
         run: rm -f terraform/terraform.tfvars
