@@ -63,7 +63,7 @@ jobs:
       - name: "Terraform Init"
         run: cd terraform && terraform init
       - name: "Terraform Apply (VPC)"
-        run: cd terraform && terraform apply -target=module.vpc -auto-approve
+        run: cd terraform && terraform apply -target=module.vpc -auto-approve -var="runner_subnet_id=dummy"
       - name: "Get public subnet id"
         id: get-public-subnet
         run: |
