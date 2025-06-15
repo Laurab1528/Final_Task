@@ -7,11 +7,13 @@ on:
       - 'app/**'
       - 'helm/**'
       - '.github/workflows/app-pipeline.yml'
-  workflow_run:
-    workflows: ["Infrastructure Pipeline"]
-    types:
-      - completed
-# env
+  push:
+    branches: [ main ]
+    paths:
+      - 'app/**'
+      - 'helm/**'
+      - '.github/workflows/app-pipeline.yml'
+
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: fastapi-app
@@ -20,7 +22,7 @@ env:
 
 jobs:
   test-and-build:
-    name: "Test and Build Application"
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repository"
@@ -39,10 +41,9 @@ jobs:
           pytest
 
   build-and-push:
-    name: "Build and Push Docker Image to ECR"
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test-and-build
     runs-on: ubuntu-latest
-    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
@@ -64,10 +65,9 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
 
   deploy:
-    name: "Deploy to EKS with Helm"
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: build-and-push
     runs-on: self-hosted
-    if: github.event.workflow_run.conclusion == 'success'
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3

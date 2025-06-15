@@ -6,6 +6,13 @@ provider "helm" {
   }
 }
 
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+  alias                  = "eks"
+}
+
 terraform {
   required_version = ">= 1.5.0"
   required_providers {
@@ -107,4 +114,39 @@ resource "aws_security_group" "runner" {
   tags = {
     Name = "runner-sg"
   }
-} 
+}
+
+resource "kubernetes_config_map" "aws_auth" {
+  provider = kubernetes.eks
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+  data = {
+    mapRoles = yamlencode([
+      {
+        rolearn  = "arn:aws:iam::579177902857:role/eks-node-role"
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = [
+          "system:bootstrappers",
+          "system:nodes"
+        ]
+      },
+      {
+        rolearn  = "arn:aws:iam::579177902857:role/eks-cluster-role"
+        username = "eks-cluster-role"
+        groups   = [
+          "system:masters"
+        ]
+      },
+      {
+        rolearn  = "arn:aws:iam::579177902857:role/actions"
+        username = "actions"
+        groups   = [
+          "system:masters"
+        ]
+      }
+    ])
+  }
+  depends_on = [module.eks, module.eks]
+}
