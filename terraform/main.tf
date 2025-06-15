@@ -1,32 +1,3 @@
-provider "helm" {
-  kubernetes {
-    host                   = module.eks.cluster_endpoint
-    cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-    token                  = data.aws_eks_cluster_auth.cluster.token
-  }
-}
-
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-  token                  = data.aws_eks_cluster_auth.cluster.token
-  alias                  = "eks"
-}
-
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.12"
-    }
-  }
-}
-
 # VPC EKS
 module "vpc" {
   source      = "./modules/vpc"
@@ -79,11 +50,16 @@ data "aws_eks_cluster_auth" "cluster" {
 # DynamoDB table for state locking
 # resource "aws_dynamodb_table" "terraform_locks" { ... }
 
+variable "runner_subnet_id" {
+  description = "Subnet ID para el runner EC2 (pública en bootstrap, privada en producción)"
+  type        = string
+}
+
 module "runner" {
   source                = "./modules/ec2"
   ami                   = var.runner_ami
   runner_instance_type  = var.runner_instance_type
-  subnet_id             = module.vpc.private_subnet_ids[0]
+  subnet_id             = var.runner_subnet_id
   security_group_id     = aws_security_group.runner.id
   github_pat            = var.github_pat
 }
