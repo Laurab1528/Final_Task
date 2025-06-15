@@ -1,194 +1,133 @@
 # Cloud & DevOps Final Project
 
 ## Overview
-This project implements a complete, production-grade CI/CD solution for deploying a containerized Python application on AWS EKS, using Terraform, Helm, and GitHub Actions. The solution is secure, modular, and follows best practices for cloud-native deployments.
+Este proyecto implementa una solución CI/CD modular y segura para desplegar una aplicación Python en AWS EKS usando Terraform, Helm y GitHub Actions. La arquitectura sigue buenas prácticas de seguridad y automatización.
 
 ---
 
-## Architecture and Key Components
+## Arquitectura y Componentes Clave
 
-- **VPC** with public and private subnets.
-- **EC2 Runner** in a private subnet, with internet access through a NAT Gateway. This runner is essential for running GitHub Actions pipelines in a private network and accessing GitHub secrets for infrastructure provisioning with Terraform.
-- **EKS Cluster** in private subnets.
-- **Application Load Balancer (ALB)** in a public subnet, routing external traffic to app pods in private subnets.
-- **AWS Load Balancer Controller** automatically installed from the infrastructure pipeline.
-- **GitHub Actions** for CI/CD, using the self-hosted runner in the VPC for private access to the EKS API and Terraform execution.
-
-**Important:** The EKS module now explicitly depends on the EC2 runner (`depends_on`), ensuring the runner is available before creating the EKS cluster and resources.
+- **VPC** y **subnet pública**: Ya existen y se referencian automáticamente en Terraform mediante data sources.
+- **EC2 Runner**: Se crea manualmente en la subnet pública existente y se registra como self-hosted runner en GitHub Actions.
+- **Subnets privadas, EKS, ALB, etc.**: Se crean automáticamente con Terraform en la misma VPC.
+- **ALB**: Se crea en la subnet pública y enruta tráfico externo a los pods en subnets privadas.
+- **GitHub Actions**: Pipelines CI/CD, usando el runner EC2 manual para despliegues privados.
 
 ---
 
-## Infrastructure Creation Flow
+## Flujo de Creación de Infraestructura
 
-1. **VPC and subnets:** 2 public and 2 private subnets are created, with route tables and a NAT Gateway for internet access from the private subnets.
-2. **EC2 Runner:** Launched in the first private subnet. Thanks to the NAT Gateway, it can access the internet (GitHub, updates, etc.) without being publicly exposed.
-3. **EKS Cluster:** Created in private subnets, ensuring nodes are not accessible from the internet.
-4. **ALB:** The Kubernetes Ingress creates an ALB in the public subnet, securely exposing the app.
-
-The creation order is guaranteed by the explicit dependency (`depends_on`) between modules.
+1. **VPC y subnet pública**: Ya existen y se referencian con data sources en Terraform.
+2. **EC2 Runner**: Se lanza manualmente en la subnet pública y se registra en GitHub Actions.
+3. **Subnets privadas, EKS, ALB, etc.**: Se crean con Terraform usando la VPC y subnet pública existentes.
 
 ---
 
-## Visual Flow Summary
+## Resumen Visual
 
 ```mermaid
 flowchart TD
-    A[VPC and Subnets] --> B[EC2 Runner (private subnet, internet access via NAT GW)]
-    B --> C[EKS Cluster (private subnet)]
-    C --> D[ALB (public subnet, Ingress)]
-    D --> E[Users access the app]
+    VPC[VPC existente]
+    PUB[Subnet pública existente]
+    PRIV[Subnets privadas (Terraform)]
+    EKS[EKS (Terraform)]
+    ALB[ALB (Terraform)]
+    EC2[Runner EC2 (manual)]
+    VPC --> PUB
+    VPC --> PRIV
+    VPC --> EKS
+    VPC --> ALB
+    PUB --> EC2
+    EKS --> ALB
 ```
 
 ---
 
-## Notes on the EC2 Runner and NAT Gateway
-
-- The EC2 runner is essential for running GitHub Actions pipelines in a private network and accessing GitHub secrets.
-- It does not have a public IP, but can access the internet thanks to the NAT Gateway.
-- It allows Terraform and Helm to run securely and privately, meeting security and architecture requirements.
-
----
-
-## Repository Structure
+## Estructura del Repositorio
 
 ```
-.
-├── app/                # Python FastAPI/Flask app
-├── terraform/          # Infrastructure as Code (EKS, VPC, etc.)
-├── helm/               # Helm chart for Kubernetes deployment
-└── .github/workflows/  # CI/CD pipelines
+terraform/
+  main.tf
+  variables.tf
+  outputs.tf
+  providers.tf
+  backend.tf
+  modules/
+    vpc/
+    eks/
+    alb/
+  scripts/
+    ensure-backend.sh
+.github/
+  workflows/
+    infrastructure-pipeline.yml
+    app-pipeline.yml
+README.md
 ```
 
 ---
 
-## Prerequisites
+## Prerequisitos
 
-- AWS account with permissions for EKS, EC2, S3, DynamoDB, IAM, ECR.
-- Docker and AWS CLI installed locally (for manual steps).
-- GitHub repository with Actions enabled.
-- Self-hosted runner in a private subnet for EKS deploys (see below).
-
----
-
-## Infrastructure and Deployment
-
-1. **Configure AWS credentials** in GitHub Secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`, `PAT`).
-2. **Deploy the infrastructure and the controller automatically:**
-   - The infrastructure pipeline creates the VPC, subnets, EKS, roles, S3, DynamoDB, etc.
-   - The `install-alb-controller` job installs the AWS Load Balancer Controller in the EKS cluster, allowing Kubernetes Ingress to create and manage a public ALB.
-3. **Deploy the application:**
-   - The application pipeline builds the image, pushes it to ECR, and deploys it to EKS using Helm.
-   - The app's Ingress is configured to use the ALB, which routes external traffic to the private pods.
+- AWS CLI configurado
+- Terraform >= 1.5.0
+- Repositorio de GitHub con Actions y secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`, `PAT`)
+- VPC y subnet pública ya creadas en AWS
 
 ---
 
-## Application Setup
+## Setup y Despliegue
 
-1. **Build and test locally:**
-   ```bash
-   cd app
-   pip install -r requirements.txt
-   pytest
-   ```
+### 1. Bootstrap (PR)
+- El workflow de infraestructura referencia la VPC y subnet pública existentes usando data sources.
+- Los outputs (`vpc_id`, `public_subnet_ids`) quedan listos para la fase final.
 
-2. **Build and push Docker image:**
-   ```bash
-   docker build -t <your-ecr-repo>:latest .
-   docker push <your-ecr-repo>:latest
-   ```
+### 2. Crear el runner EC2 manualmente
+- Lanza una instancia EC2 en la subnet pública existente.
+- Asigna el key pair y el security group adecuado (SSH abierto desde tu IP).
+- Instala y registra el runner de GitHub Actions manualmente.
 
-3. **Deploy to EKS using Helm:**
-   ```bash
-   helm upgrade --install fastapi-app ./helm/fastapi-app \
-     --namespace production --create-namespace \
-     --set image.repository=<your-ecr-repo> \
-     --set image.tag=latest --wait
-   ```
+### 3. Fase final (merge a main)
+- El workflow crea subnets privadas, EKS, ALB, etc., usando la VPC y subnet pública existentes.
 
 ---
 
-## CI/CD Workflow Overview
+## Pipelines
 
-### 1. Pull Request (PR)
-- Only the `test-and-build` job from `app-pipeline.yml` runs.
-- This job checks out the code, installs dependencies, and runs tests.
-- **No image is built or pushed, and no deployment or infrastructure changes are made.**
-
-### 2. Merge to `main` (push to main)
-- **Step 1: Infrastructure Pipeline**
-  - The `infrastructure-pipeline.yml` workflow runs on every push to `main`.
-  - It provisions or updates all AWS infrastructure (EKS cluster, VPC, subnets, IAM roles, etc.) using Terraform.
-  - **No application is deployed at this stage.**
-- **Step 2: Application Pipeline**
-  - When the infrastructure pipeline completes successfully, the `app-pipeline.yml` workflow is triggered automatically (via `workflow_run`).
-  - It builds and pushes the Docker image to ECR.
-  - Then, it deploys the application to the EKS cluster using Helm.
-
-### Visual Summary
-
-```mermaid
-flowchart TD
-    A[Pull Request] --> B[App Pipeline: Test and Build]
-    C[Merge to main] --> D[Infrastructure Pipeline: Terraform]
-    D --> E[App Pipeline: Build and Push Docker Image]
-    E --> F[App Pipeline: Deploy to EKS with Helm]
-```
-
-### Key Points
-- The application is never deployed and the infrastructure is never changed on PRs.
-- The deployment of the app only happens if the infrastructure was created/updated successfully.
-- The order is always: **infrastructure first, then application deployment**.
+- **infrastructure-pipeline.yml:**
+  - Bootstrap: Referencia VPC y subnet pública.
+  - Full infra: Crea subnets privadas, EKS, ALB, etc.
+- **app-pipeline.yml:**
+  - Test/build en runners públicos.
+  - Deploy en el runner EC2 manual.
 
 ---
 
-## Accessing the Application
+## Buenas prácticas implementadas
 
-- **Public URL:**
-  - The Application Load Balancer (ALB) is the only public entry point. Find the ALB DNS in the AWS console.
-- **Health check:**
-  - `curl http://<alb-dns>/health`
-- **API endpoint:**
-  - `curl http://<alb-dns>/api`
-
----
-
-## Security and Best Practices
-
-- All secrets are managed with GitHub Secrets.
-- The EKS API is private; deployments use a self-hosted runner in the VPC.
-- The ALB is public, but pods and nodes are in private subnets.
-- Infrastructure is scanned with tfsec and tflint.
-- IAM with least privilege.
-- The AWS Load Balancer Controller is installed automatically from the pipeline.
+- Código modular y reutilizable (módulos de VPC, EKS, ALB, etc.).
+- Uso de data sources para recursos existentes.
+- Outputs claros y documentados.
+- Pipelines automáticos y seguros.
+- Separación de fases (bootstrap y full infra).
+- Documentación clara y diagrama de arquitectura.
 
 ---
 
-## Example Pipeline Logs
+## Pruebas y evidencia
 
-- (Add screenshots or links to successful pipeline runs)
-
----
-
-## Extras
-
-- Helm, tfsec, tflint, etc. used for best practices.
-- Branching and PR strategy documented in CONTRIBUTING.md.
+- [ ] Captura de los recursos creados en AWS.
+- [ ] Salida de `terraform output` mostrando los IDs usados.
+- [ ] Screenshots del runner EC2 registrado y pipelines ejecutados.
 
 ---
 
-## Want to contribute ?
+## Notas adicionales
 
-If you want to contribute to this project, please check the contribution guide at [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md) to learn about the rules, workflow, and best practices.
-
----
-
-## Self-hosted Runner Bootstrapping and Monitoring
-
-- The first infrastructure deployment runs on a public GitHub Actions runner (`ubuntu-latest`). This creates all AWS resources, including the EC2 self-hosted runner in the private subnet.
-- **No manual creation of the self-hosted runner is needed.** The EC2 runner is automatically registered as a self-hosted runner using the GitHub PAT secret.
-- After the infrastructure pipeline completes, go to your repository in GitHub → **Settings** → **Actions** → **Runners** and verify that the EC2 runner appears as **'Idle'** or **'Active'**.
-- All subsequent deployments (including application deployment) will use this EC2 self-hosted runner (`runs-on: self-hosted`), ensuring secure access to the private EKS cluster.
-- If you ever need to bootstrap again, just ensure the infrastructure pipeline runs on a public runner for the first deployment.
+- El runner EC2 se crea y registra manualmente, no por Terraform.
+- La VPC y la subnet pública ya existen y se referencian con data sources.
+- Todos los recursos nuevos se crean en la misma VPC y subnets.
+- El código es modular y fácil de mantener.
 
 ---
 
