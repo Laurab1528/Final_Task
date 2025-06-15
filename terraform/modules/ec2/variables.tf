@@ -19,12 +19,6 @@ variable "security_group_id" {
   type        = string
 }
 
-variable "github_pat" {
-  description = "GitHub Personal Access Token to register the runner"
-  type        = string
-  sensitive   = true
-}
-
 variable "runner_ami" {
   type = string
   default = "ami-053b0d53c279acc00"
