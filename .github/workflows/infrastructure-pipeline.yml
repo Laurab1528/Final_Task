@@ -54,7 +54,6 @@ jobs:
           cat > terraform/terraform.tfvars <<EOF
           api_key    = "${{ secrets.API_KEY }}"
           aws_region = "${{ env.AWS_REGION }}"
-          github_pat = "${{ secrets.PAT }}"
           runner_subnet_id = "${{ steps.get-private-subnet.outputs.value }}"
           EOF
       - name: "Terraform Apply (full infra)"

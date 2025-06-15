@@ -24,10 +24,4 @@ variable "runner_instance_type" {
   description = "Instance type for the runner"
   type        = string
   default     = "t3.small"
-}
-
-variable "github_pat" {
-  description = "GitHub Personal Access Token to register the runner"
-  type        = string
-  sensitive   = true
 } 

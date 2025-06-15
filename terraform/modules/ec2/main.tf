@@ -13,9 +13,7 @@ resource "aws_instance" "runner" {
               mkdir actions-runner && cd actions-runner
               curl -o actions-runner-linux-x64-2.325.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.325.0/actions-runner-linux-x64-2.325.0.tar.gz
               tar xzf ./actions-runner-linux-x64-2.325.0.tar.gz
-              TOKEN=$(curl -s -X POST -H "Authorization: token ${var.github_pat}" https://api.github.com/repos/Laurab1528/Final_Task/actions/runners/registration-token | jq -r .token)
-              ./config.sh --url https://github.com/Laurab1528/Final_Task --token $TOKEN --unattended
-              ./run.sh &
+              # Registro manual del runner, ya no se usa github_pat
               EOF
 
   tags = {
