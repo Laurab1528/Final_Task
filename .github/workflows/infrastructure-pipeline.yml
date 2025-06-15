@@ -1,3 +1,7 @@
+concurrency:
+  group: terraform-infra
+  cancel-in-progress: true
+
 name: Infrastructure Pipeline
 
 on:
