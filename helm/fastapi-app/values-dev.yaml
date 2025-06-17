@@ -1,23 +1,23 @@
 # Development values for FastAPI app
-replicaCount: 1
+replicaCount: 3
 image:
   repository: 579177902857.dkr.ecr.us-east-1.amazonaws.com/fastapi-app
-  tag: dev
+  tag: latest
   pullPolicy: Always
+  name: 579177902857.dkr.ecr.us-east-1.amazonaws.com/fastapi-app:latest
 resources:
   limits:
-    cpu: 100m
-    memory: 128Mi
+    cpu: 500m
+    memory: 512Mi
   requests:
-    cpu: 50m
-    memory: 64Mi
+    cpu: 250m
+    memory: 256Mi
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8080
   targetPort: 8080
 env:
-  - name: LOG_LEVEL
-    value: "DEBUG"
+  LOG_LEVEL: "INFO"
 serviceAccount:
   create: true
   name: fastapi-sa
