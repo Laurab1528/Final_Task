@@ -79,7 +79,7 @@ EOF
 }
 
 resource "aws_kms_alias" "eks" {
-  name          = "alias/eks-encryption-key"
+  name          = "alias/eks-encryption-key1"
   target_key_id = aws_kms_key.eks.key_id
 }
 
@@ -169,7 +169,7 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 
 # Secret in AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
-  name       = "fastapi/api_key2"
+  name       = "fastapi/api_key3"
   kms_key_id = aws_kms_key.eks.arn
 }
 

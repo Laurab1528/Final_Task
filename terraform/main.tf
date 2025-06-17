@@ -2,6 +2,9 @@
 module "vpc" {
   source      = "./modules/vpc"
   kms_key_arn = module.eks.kms_key_arn
+
+  existing_igw_id                = "igw-0fb57ccf6200364a5"
+  existing_public_route_table_id = "rtb-059f084fedb6b0e1e"
 }
 
 # EKS Cluster
@@ -98,12 +101,15 @@ resource "aws_security_group" "runner" {
   }
 }
 
-resource "kubernetes_config_map" "aws_auth" {
+resource "kubernetes_config_map_v1_data" "aws_auth" {
   provider = kubernetes.eks
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
   }
+
+  force = true
+
   data = {
     mapRoles = yamlencode([
       {
@@ -130,5 +136,6 @@ resource "kubernetes_config_map" "aws_auth" {
       }
     ])
   }
-  depends_on = [module.eks, module.eks]
+
+  depends_on = [module.eks]
 }

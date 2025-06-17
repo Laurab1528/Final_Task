@@ -1,5 +1,5 @@
 output "vpc_id" {
-  value = aws_vpc.main.id
+  value = data.aws_vpc.existing.id
 }
 
 output "private_subnet_ids" {
