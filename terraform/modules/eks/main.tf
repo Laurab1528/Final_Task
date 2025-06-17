@@ -79,7 +79,7 @@ EOF
 }
 
 resource "aws_kms_alias" "eks" {
-  name          = "alias/eks-encryption-key"
+  name          = "alias/eks-encryption-key1"
   target_key_id = aws_kms_key.eks.key_id
 }
 

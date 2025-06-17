@@ -1,17 +1,12 @@
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-
-  tags = {
-    Name = "eks-vpc"
-  }
+# Usar VPC existente en lugar de crear una nueva
+data "aws_vpc" "existing" {
+  id = "vpc-0dd081f902c8112b5"  # Este ID debe coincidir con el que estás usando en el módulo principal
 }
 
 # Public subnets
 resource "aws_subnet" "public" {
   count             = 2
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = data.aws_vpc.existing.id  # Usar la VPC existente
   cidr_block        = "10.0.${count.index + 1}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
@@ -27,7 +22,7 @@ resource "aws_subnet" "public" {
 # Private subnets
 resource "aws_subnet" "private" {
   count             = 2
-  vpc_id            = aws_vpc.main.id
+  vpc_id            = data.aws_vpc.existing.id  # Usar la VPC existente
   cidr_block        = "10.0.${count.index + 10}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
@@ -39,13 +34,7 @@ resource "aws_subnet" "private" {
 }
 
 # Internet Gateway
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-
-  tags = {
-    Name = "eks-igw"
-  }
-}
+# resource "aws_internet_gateway" "main" { ... }
 
 # NAT Gateway
 resource "aws_nat_gateway" "main" {
@@ -67,22 +56,11 @@ resource "aws_eip" "nat" {
 }
 
 # Public route table
-resource "aws_route_table" "public" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name = "public-rt"
-  }
-}
+# resource "aws_route_table" "public" { ... }
 
 # Private route table
 resource "aws_route_table" "private" {
-  vpc_id = aws_vpc.main.id
+  vpc_id = data.aws_vpc.existing.id
 
   route {
     cidr_block     = "0.0.0.0/0"
@@ -94,11 +72,26 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Public route table associations
+# Referenciar IGW y Route Table existentes
+data "aws_internet_gateway" "existing" {
+  filter {
+    name   = "internet-gateway-id"
+    values = [var.existing_igw_id]
+  }
+}
+
+data "aws_route_table" "existing_public" {
+  filter {
+    name   = "route-table-id"
+    values = [var.existing_public_route_table_id]
+  }
+}
+
+# Asociación de subnets públicas a la Route Table existente
 resource "aws_route_table_association" "public" {
   count          = 2
   subnet_id      = aws_subnet.public[count.index].id
-  route_table_id = aws_route_table.public.id
+  route_table_id = data.aws_route_table.existing_public.id
 }
 
 # Private route table associations
@@ -118,7 +111,7 @@ resource "aws_flow_log" "main" {
   iam_role_arn    = aws_iam_role.flow_log.arn
   log_destination = aws_cloudwatch_log_group.flow_log.arn
   traffic_type    = "ALL"
-  vpc_id          = aws_vpc.main.id
+  vpc_id          = data.aws_vpc.existing.id
 }
 
 resource "aws_cloudwatch_log_group" "flow_log" {
