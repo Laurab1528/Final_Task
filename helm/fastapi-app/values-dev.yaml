@@ -1,7 +1,7 @@
 # Development values for FastAPI app
 replicaCount: 1
 image:
-  repository: fastapi-app
+  repository: 579177902857.dkr.ecr.us-east-1.amazonaws.com/fastapi-app
   tag: dev
   pullPolicy: Always
 resources:
@@ -13,10 +13,31 @@ resources:
     memory: 64Mi
 service:
   type: ClusterIP
-  port: 80
+  port: 8080
+  targetPort: 8080
 env:
-  LOG_LEVEL: "DEBUG"
+  - name: LOG_LEVEL
+    value: "DEBUG"
 serviceAccount:
+  create: true
   name: fastapi-sa
-  namespace: development
-  roleArn: arn:aws:iam::579177902857:role/fastapi-sa-role 
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::579177902857:role/fastapi-sa-role
+
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 1
+  failureThreshold: 3 
