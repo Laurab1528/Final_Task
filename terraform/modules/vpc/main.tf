@@ -33,9 +33,6 @@ resource "aws_subnet" "private" {
   }
 }
 
-# Internet Gateway
-# resource "aws_internet_gateway" "main" { ... }
-
 # NAT Gateway
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.nat.id
@@ -54,9 +51,6 @@ resource "aws_eip" "nat" {
     Name = "eks-nat-eip"
   }
 }
-
-# Public route table
-# resource "aws_route_table" "public" { ... }
 
 # Private route table
 resource "aws_route_table" "private" {
@@ -118,7 +112,6 @@ resource "aws_cloudwatch_log_group" "flow_log" {
   name              = "/aws/vpc/flow-logs"
   retention_in_days = 30
   kms_key_id        = var.kms_key_arn
-  # The creation order of the KMS key is managed by the root module (main.tf)
 }
 
 resource "aws_iam_role" "flow_log" {
