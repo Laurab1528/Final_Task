@@ -101,12 +101,15 @@ resource "aws_security_group" "runner" {
   }
 }
 
-resource "kubernetes_config_map" "aws_auth" {
+resource "kubernetes_config_map_v1_data" "aws_auth" {
   provider = kubernetes.eks
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
   }
+
+  force = true
+
   data = {
     mapRoles = yamlencode([
       {
@@ -133,5 +136,6 @@ resource "kubernetes_config_map" "aws_auth" {
       }
     ])
   }
-  depends_on = [module.eks, module.eks]
+
+  depends_on = [module.eks]
 }
