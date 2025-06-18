@@ -169,7 +169,7 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 
 # Secret in AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
-  name       = "fastapi/api_key3"
+  name       = "fastapi/api_key4"
   kms_key_id = aws_kms_key.eks.arn
 }
 
