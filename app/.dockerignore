@@ -1,0 +1,7 @@
+app/venv/
+app/__pycache__/
+app/.pytest_cache/
+app/.env
+app/.python-version
+app/pyproject.toml
+app/uv.lock 

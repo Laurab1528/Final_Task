@@ -1,53 +1,39 @@
-# Build stage
-FROM python:3.10-slim as builder
-
-# Set working directory
-WORKDIR /app
-
-# Copy all necessary files for the application
-COPY requirements.txt .
-COPY main.py .
-COPY models.py .
-COPY data/ data/
-
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Final stage
 FROM python:3.10-slim
 
-# Container metadata
+# Metadatos
 LABEL maintainer="Your Name laurab1528@hotmail.com"
 LABEL description="FastAPI application for EKS deployment"
 
-# Set environment variables
+# Variables de entorno
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PORT=8080
 
-# Create non-root user
+# Crear usuario no root
 RUN adduser --system --group app
 
+# Establecer directorio de trabajo
 WORKDIR /app
 
-# Copy only necessary files from builder stage
-COPY --from=builder /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
-COPY --from=builder /app/main.py .
-COPY --from=builder /app/models.py .
-COPY --from=builder /app/data/ data/
+# Copiar toda la app
+COPY app/ /app
 
-# Change files ownership to non-root user
+# Instalar dependencias
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Cambiar permisos
 RUN chown -R app:app /app
 
-# Switch to non-root user
+# Cambiar a usuario no root
 USER app
 
-# Expose port
+# Exponer puerto
 EXPOSE 8080
 
-# Health check for Kubernetes
+# Healthcheck para Kubernetes
 HEALTHCHECK --interval=30s --timeout=3s \
     CMD curl -f http://localhost:8080/health || exit 1
 
-# Command to run the application
-CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"] 
+# Comando para ejecutar la app
+CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+
