@@ -80,6 +80,11 @@ jobs:
           aws eks describe-cluster --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
       - name: "Update kubeconfig"
         run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+      - name: "Instalar External Secrets Operator"
+        run: |
+          kubectl apply -f https://github.com/external-secrets/external-secrets/releases/latest/download/crds.yaml
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
       - name: "Wait for EKS API availability"
         run: |
           for i in {1..10}; do

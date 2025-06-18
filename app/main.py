@@ -18,28 +18,15 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-async def get_secret():
-    """
-    Retrieve the API key from AWS Secrets Manager.
-    The secret must be stored as a JSON with the key 'API_KEY'.
-    """
-    secret_name = "fastapi/api_key2"
-    region_name = os.environ.get("AWS_REGION", "us-east-1")
-    session = boto3.session.Session()
-    client = session.client(service_name='secretsmanager', region_name=region_name)
-    get_secret_value_response = await asyncio.to_thread(client.get_secret_value, SecretId=secret_name)
-    secret = get_secret_value_response['SecretString']
-    return json.loads(secret)["API_KEY"]
+API_KEY = os.environ.get("API_KEY")
+ENV = os.environ.get("ENV", "local")
 
-API_KEY = None
-
-# Detect if running in test mode (pytest)
+# Si estamos en test, forzamos el API_KEY de test
 if "PYTEST_CURRENT_TEST" in os.environ or "pytest" in sys.modules:
-    # Use a test API key for testing
     API_KEY = "test_api_key"
-else:
-    # In normal execution, retrieve the secret from AWS
-    API_KEY = asyncio.run(get_secret())
+
+if not API_KEY:
+    raise RuntimeError("API_KEY no está definida en las variables de entorno.")
 
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=True)

@@ -24,6 +24,11 @@ spec:
         env:
         - name: LOG_LEVEL
           value: {{ .Values.env.LOG_LEVEL | quote }}
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: fastapi-secret
+              key: API_KEY
         livenessProbe:
           httpGet:
             path: /health
