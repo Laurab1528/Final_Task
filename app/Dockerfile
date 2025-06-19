@@ -15,8 +15,8 @@ RUN adduser --system --group app
 # Establecer directorio de trabajo
 WORKDIR /app
 
-# Copiar toda la app
-COPY app/ /app
+# Copiar toda la app (desde el directorio actual al directorio /app)
+COPY . .
 
 # Instalar dependencias
 RUN pip install --no-cache-dir -r requirements.txt
