@@ -1,8 +1,3 @@
-variable "kms_key_arn" {
-  description = "KMS key ARN for VPC flow logs"
-  type        = string
-}
-
 variable "existing_igw_id" {
   description = "ID del Internet Gateway existente"
   type        = string
