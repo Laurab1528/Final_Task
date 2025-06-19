@@ -111,7 +111,8 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
 
 # Secret in AWS Secrets Manager
 resource "aws_secretsmanager_secret" "api_key" {
-  name       = "fastapi/api_key5"
+  name = "fastapi/api_key5"
+  recovery_window_in_days = 0
 }
 
 resource "aws_secretsmanager_secret_version" "api_key_version" {
