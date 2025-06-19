@@ -2,33 +2,40 @@
 
 ## Branch Strategy
 
-We follow a trunk-based development approach with short-lived feature branches:
+This repository uses a simple branch strategy with only two main branches:
 
 - `main`: Production-ready code
-- `feature/*`: New features or updates
-- `fix/*`: Bug fixes
-- `hotfix/*`: Emergency fixes for production
+- `feature`: All development work and new features are implemented here
+
+
 
 ## Development Workflow
 
-1. **Create a feature branch from main:**
+1. **Checkout the feature branch:**
    ```bash
-   git checkout -b feature/your-feature-name
+   git checkout feature
    ```
 
-2. **Make your changes with clear, atomic commits:**
+2. **Create a local branch for your work (optional, for organization):**
+   ```bash
+   git checkout -b your-local-feature
+   ```
+
+3. **Make your changes with clear, atomic commits:**
    ```bash
    git commit -m "feat: add new endpoint for products"
    ```
 
-3. **Push your branch and create a Pull Request:**
+4. **Push your changes to the remote feature branch:**
    ```bash
-   git push origin feature/your-feature-name
+   git push origin feature
    ```
+
+5. **Create a Pull Request (PR) from `feature` to `main`:**
    - Open a Pull Request (PR) to `main`.
    - Link your PR to relevant GitHub issues using keywords like `Closes #issue_number`.
 
-4. **Pull Request Process:**
+6. **Pull Request Process:**
    - Update documentation if needed.
    - Add or update tests for new features.
    - Ensure the CI pipeline passes (tests, security, linting, etc.).
@@ -36,8 +43,8 @@ We follow a trunk-based development approach with short-lived feature branches:
    - Address feedback and make changes as needed.
    - Squash and merge to `main` only after approval.
 
-5. **Branch Deletion:**
-   - After merging, delete the feature/fix branch to keep the repository clean.
+7. **Branch Deletion:**
+   - After merging, delete any local branches you created to keep your workspace clean.
 
 ## Commit Message Format
 
@@ -59,10 +66,10 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 ## Keeping Your Branch Up to Date
 
-- Regularly pull from `main` to keep your branch updated:
+- Regularly pull from `feature` to keep your local branch updated:
   ```bash
   git fetch origin
-  git rebase origin/main
+  git rebase origin/feature
   ```
 - Resolve any conflicts before requesting a review.
 
@@ -82,6 +89,18 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
   terraform apply
   ```
 - To change environments (dev, prod), update the values file referenced in the `helm_release` resource in Terraform.
+
+## CI/CD Workflow Overview
+
+- **Pull Request to `main`:**
+  - The infrastructure workflow (`infrastructure-pipeline.yml`) runs a validation of Terraform changes (plan, checks).
+  - The application workflow (`app-pipeline.yml`) runs tests and builds the application, but does NOT deploy.
+
+- **Merge to `main`:**
+  - The infrastructure workflow applies all Terraform changes, provisioning or updating AWS resources.
+  - The application workflow builds the Docker image, pushes it to ECR, and deploys the application to EKS using Helm.
+
+This ensures that only reviewed and approved code is deployed to production, and that all changes are validated before being applied.
 
 ---
 
