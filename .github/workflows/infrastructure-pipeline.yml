@@ -123,6 +123,20 @@ jobs:
             fi
           done
 
+      - name: "Save EKS Node Role ARN"
+        id: save_output
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          echo "Saving EKS node role ARN to file..."
+          terraform output -raw eks_node_role_arn > eks_node_role_arn.txt
+          cat eks_node_role_arn.txt
+
+      - name: "Upload EKS Node Role ARN Artifact"
+        uses: actions/upload-artifact@v4
+        with:
+          name: eks-node-role-arn
+          path: ${{ env.WORKSPACE_DIR }}/eks_node_role_arn.txt
+
       - name: "Verify EKS Cluster with Retry"
         run: |
           # This step will only succeed if the runner is inside the VPC
