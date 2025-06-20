@@ -76,5 +76,8 @@ resource "kubernetes_config_map" "aws_auth" {
     ])
   }
 
-  depends_on = [module.eks]
+  depends_on = [
+    module.eks,
+    aws_security_group_rule.runner_to_eks,
+  ]
 }
