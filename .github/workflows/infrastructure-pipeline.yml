@@ -97,6 +97,13 @@ jobs:
           # We add "|| true" so the pipeline doesn't fail if the resource is already gone.
           terraform state rm -lock=false kubernetes_config_map_v1_data.aws_auth || true
 
+      - name: "Fix Renamed Security Group in State"
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          echo "Renaming security group in Terraform state to avoid destroy/create cycle..."
+          terraform state mv -lock=false "aws_security_group.runner" "aws_security_group.runner_sg" || true
+          terraform state mv -lock=false "aws_security_group_rule.eks_from_runner" "aws_security_group_rule.runner_to_eks" || true
+
       - name: "Create terraform.tfvars"
         run: |
           echo "Creating terraform.tfvars file..."
