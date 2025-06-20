@@ -4,7 +4,6 @@ variable "aws_region" {
   default     = "us-east-1"
 }
 
-/*
 variable "runner_ami" {
   description = "AMI for the GitHub Actions runner"
   type        = string
@@ -22,22 +21,11 @@ variable "github_pat" {
   type        = string
   sensitive   = true
 }
-*/
 
 variable "api_key" {
   description = "API key for the application"
   type        = string
   sensitive   = true
-}
-
-variable "existing_igw_id" {
-  description = "The ID of the existing Internet Gateway"
-  type        = string
-}
-
-variable "existing_public_route_table_id" {
-  description = "The ID of the existing public route table"
-  type        = string
 }
 
 variable "project_name" {

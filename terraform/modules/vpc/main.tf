@@ -1,12 +1,12 @@
-# Usar VPC existente en lugar de crear una nueva
+# Use an existing VPC instead of creating a new one
 data "aws_vpc" "existing" {
-  id = "vpc-0dd081f902c8112b5"  # Este ID debe coincidir con el que estás usando en el módulo principal
+  id = "vpc-0dd081f902c8112b5"
 }
 
 # Public subnets
 resource "aws_subnet" "public" {
   count             = 2
-  vpc_id            = data.aws_vpc.existing.id  # Usar la VPC existente
+  vpc_id            = data.aws_vpc.existing.id
   cidr_block        = "10.0.${count.index + 1}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
@@ -22,7 +22,7 @@ resource "aws_subnet" "public" {
 # Private subnets
 resource "aws_subnet" "private" {
   count             = 2
-  vpc_id            = data.aws_vpc.existing.id  # Usar la VPC existente
+  vpc_id            = data.aws_vpc.existing.id
   cidr_block        = "10.0.${count.index + 10}.0/24"
   availability_zone = data.aws_availability_zones.available.names[count.index]
 
@@ -66,22 +66,27 @@ resource "aws_route_table" "private" {
   }
 }
 
-# Referenciar IGW y Route Table existentes
+# Reference existing IGW and Public Route Table
 data "aws_internet_gateway" "existing" {
   filter {
-    name   = "internet-gateway-id"
-    values = [var.existing_igw_id]
+    name   = "attachment.vpc-id"
+    values = [data.aws_vpc.existing.id]
   }
 }
 
 data "aws_route_table" "existing_public" {
   filter {
-    name   = "route-table-id"
-    values = [var.existing_public_route_table_id]
+    name   = "vpc-id"
+    values = [data.aws_vpc.existing.id]
+  }
+
+  filter {
+    name   = "association.main"
+    values = ["true"]
   }
 }
 
-# Asociación de subnets públicas a la Route Table existente
+# Associate public subnets to the existing Public Route Table
 resource "aws_route_table_association" "public" {
   count          = 2
   subnet_id      = aws_subnet.public[count.index].id

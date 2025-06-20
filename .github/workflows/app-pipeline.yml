@@ -59,18 +59,13 @@ jobs:
 
   build-and-push:
     if: github.event_name == 'workflow_run'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     outputs:
       ecr_registry: ${{ steps.login-ecr.outputs.registry }}
     timeout-minutes: 45
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
-
-      - name: "Set up Node.js"
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
 
       - name: "Verify Docker installation"
         run: |
@@ -119,16 +114,11 @@ jobs:
   deploy:
     if: github.event_name == 'workflow_run'
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     timeout-minutes: 60
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
-
-      - name: "Set up Node.js"
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
 
       - name: "Verify working directory"
         run: |
