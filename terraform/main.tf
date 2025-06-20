@@ -12,22 +12,8 @@ module "eks" {
   api_key            = var.api_key
 }
 
-data "aws_eks_cluster_auth" "cluster" {
-  name = module.eks.cluster_name
-}
-
-# Runner module to be used with private EKS endpoint
-module "runner" {
-  source                = "./modules/ec2"
-  ami                   = var.runner_ami
-  runner_instance_type  = var.runner_instance_type
-  subnet_id             = "subnet-0d623f0efa8a6150b"
-  security_group_id     = aws_security_group.runner.id
-  github_pat            = var.github_pat
-}
-
-# Runner security group
-resource "aws_security_group" "runner" {
+# Runner Security Group
+resource "aws_security_group" "runner_sg" {
   name        = "runner-sg"
   description = "Security group for GitHub Actions runner"
   vpc_id      = module.vpc.vpc_id
@@ -44,27 +30,23 @@ resource "aws_security_group" "runner" {
   }
 }
 
-# Security group rule to allow runner to access EKS
-resource "aws_security_group_rule" "eks_from_runner" {
+# Rule to allow Runner to access EKS API
+resource "aws_security_group_rule" "runner_to_eks" {
   type                     = "ingress"
   from_port                = 443
   to_port                  = 443
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.runner.id
-  security_group_id        = module.eks.node_security_group_id
+  source_security_group_id = aws_security_group.runner_sg.id
+  security_group_id        = module.eks.node_security_group_id # This should be the cluster security group
 }
 
-provider "kubernetes" {
-  host                   = module.eks.cluster_endpoint
-  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
-}
-
+# Self-hosted Runner EC2 Instance
 module "ec2" {
   source               = "./modules/ec2"
-  ami                  = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI (HVM), SSD Volume Type
+  ami                  = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
   runner_instance_type = "t2.medium"
-  subnet_id            = module.vpc.public_subnet_ids[0]
-  security_group_id    = module.eks.node_security_group_id
+  subnet_id            = module.vpc.public_subnet_ids[0] # Runner in a public subnet to get internet access for GH registration
+  security_group_id    = aws_security_group.runner_sg.id
   github_pat           = var.github_pat
 }
 

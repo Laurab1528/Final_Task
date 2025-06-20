@@ -160,6 +160,35 @@ jobs:
           echo "Testing cluster connectivity..."
           kubectl get nodes
 
+      - name: "Download EKS Node Role ARN Artifact"
+        uses: actions/download-artifact@v4
+        with:
+          name: eks-node-role-arn
+
+      - name: "Apply aws-auth ConfigMap"
+        run: |
+          echo "Applying aws-auth ConfigMap..."
+          NODE_ROLE_ARN=$(cat eks_node_role_arn.txt)
+          echo "Node Role ARN: $NODE_ROLE_ARN"
+
+          cat <<EOF > aws-auth-cm.yaml
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: aws-auth
+            namespace: kube-system
+          data:
+            mapRoles: |
+              - rolearn: $NODE_ROLE_ARN
+                username: system:node:{{EC2PrivateDNSName}}
+                groups:
+                  - system:bootstrappers
+                  - system:nodes
+          EOF
+
+          kubectl apply -f aws-auth-cm.yaml
+          echo "aws-auth ConfigMap applied successfully."
+
       - name: "Install External Secrets Operator"
         run: |
           echo "Installing External Secrets Operator..."
