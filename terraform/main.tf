@@ -12,6 +12,10 @@ module "eks" {
   api_key            = var.api_key
 }
 
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.cluster_name
+}
+
 # Runner Security Group
 resource "aws_security_group" "runner_sg" {
   name        = "runner-sg"
@@ -47,4 +51,28 @@ module "ec2" {
   subnet_id            = module.vpc.public_subnet_ids[0]
   security_group_id    = aws_security_group.runner_sg.id
   github_pat           = var.github_pat
+}
+
+resource "kubernetes_config_map" "aws_auth" {
+  metadata {
+    name      = "aws-auth"
+    namespace = "kube-system"
+  }
+
+  data = {
+    "mapRoles" = yamlencode([
+      {
+        rolearn  = module.eks.eks_node_role_arn
+        username = "system:node:{{EC2PrivateDNSName}}"
+        groups   = ["system:bootstrappers", "system:nodes"]
+      },
+      {
+        rolearn  = "arn:aws:iam::579177902857:role/actions"
+        username = "cicd-role"
+        groups   = ["system:masters"]
+      }
+    ])
+  }
+
+  depends_on = [module.eks]
 }
