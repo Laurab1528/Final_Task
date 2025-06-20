@@ -1,4 +1,4 @@
-# VPC EKS
+# VPC EKS AWS
 module "vpc" {
   source      = "./modules/vpc"
 
