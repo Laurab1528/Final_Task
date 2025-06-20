@@ -157,55 +157,52 @@ resource "aws_iam_role_policy" "flow_log" {
   })
 }
 
-# Allow traffic from public to private subnets
-data "aws_network_acl" "main" {
+# Network ACL for private subnets to allow traffic from the public subnets
+resource "aws_network_acl" "private" {
   vpc_id = data.aws_vpc.existing.id
-  filter {
-    name   = "default"
-    values = ["true"]
+
+  tags = {
+    Name = "private-nacl"
   }
 }
 
-resource "aws_network_acl_rule" "public_to_private_ingress" {
-  network_acl_id = data.aws_network_acl.main.id
+resource "aws_network_acl_association" "private" {
+  count          = 2
+  subnet_id      = aws_subnet.private[count.index].id
+  network_acl_id = aws_network_acl.private.id
+}
+
+# Ingress from public subnets
+resource "aws_network_acl_rule" "ingress_from_public_1" {
+  network_acl_id = aws_network_acl.private.id
   rule_number    = 100
   egress         = false
-  protocol       = "tcp"
+  protocol       = "all"
   rule_action    = "allow"
   cidr_block     = aws_subnet.public[0].cidr_block
-  from_port      = 1024
-  to_port        = 65535
+  from_port      = 0
+  to_port        = 0
 }
 
-resource "aws_network_acl_rule" "private_to_public_egress" {
-  network_acl_id = data.aws_network_acl.main.id
-  rule_number    = 100
-  egress         = true
-  protocol       = "tcp"
-  rule_action    = "allow"
-  cidr_block     = aws_subnet.public[0].cidr_block
-  from_port      = 1024
-  to_port        = 65535
-}
-
-resource "aws_network_acl_rule" "public_to_private_ingress_2" {
-  network_acl_id = data.aws_network_acl.main.id
+resource "aws_network_acl_rule" "ingress_from_public_2" {
+  network_acl_id = aws_network_acl.private.id
   rule_number    = 101
   egress         = false
-  protocol       = "tcp"
+  protocol       = "all"
   rule_action    = "allow"
   cidr_block     = aws_subnet.public[1].cidr_block
-  from_port      = 1024
-  to_port        = 65535
+  from_port      = 0
+  to_port        = 0
 }
 
-resource "aws_network_acl_rule" "private_to_public_egress_2" {
-  network_acl_id = data.aws_network_acl.main.id
-  rule_number    = 101
+# Egress to anywhere (for return traffic and internet access via NAT)
+resource "aws_network_acl_rule" "egress_to_anywhere" {
+  network_acl_id = aws_network_acl.private.id
+  rule_number    = 100
   egress         = true
-  protocol       = "tcp"
+  protocol       = "all"
   rule_action    = "allow"
-  cidr_block     = aws_subnet.public[1].cidr_block
-  from_port      = 1024
-  to_port        = 65535
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 0
+  to_port        = 0
 } 
