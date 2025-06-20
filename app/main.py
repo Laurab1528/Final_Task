@@ -52,10 +52,15 @@ API_KEY = get_secret()
 if not API_KEY:
     raise RuntimeError("Could not get API key. Make sure it is configured in environment variables or Secrets Manager.")
 
-API_KEY_HEADER = APIKeyHeader(name="X-API-Key")
+API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)
 
-async def verify_api_key(request: Request, api_key: str = Depends(API_KEY_HEADER)):
-    logger.info(f"HEADERS_DEBUG: {request.headers}")
+async def verify_api_key(api_key: str | None = Depends(API_KEY_HEADER)):
+    if api_key is None:
+        logger.error("AUTH_FAIL: Missing X-API-Key header.")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing API Key"
+        )
     if api_key != API_KEY:
         logger.error(f"AUTH_FAIL: Received key='{api_key}' vs Expected key='{API_KEY[:4]}...'.")
         raise HTTPException(
