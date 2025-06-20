@@ -23,6 +23,13 @@ resource "aws_eks_cluster" "main" {
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
     aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController,
   ]
+
+  lifecycle {
+    ignore_changes = [
+      identity[0].oidc[0].issuer,
+      certificate_authority[0].data,
+    ]
+  }
 }
 
 resource "aws_eks_node_group" "main" {
