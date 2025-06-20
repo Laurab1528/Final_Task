@@ -54,41 +54,34 @@ resource "aws_security_group_rule" "eks_from_runner" {
   security_group_id        = module.eks.node_security_group_id
 }
 
+provider "kubernetes" {
+  host                   = module.eks.cluster_endpoint
+  cluster_ca_certificate = base64decode(module.eks.cluster_certificate_authority_data)
+}
+
+module "ec2" {
+  source               = "./modules/ec2"
+  ami                  = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI (HVM), SSD Volume Type
+  runner_instance_type = "t2.medium"
+  subnet_id            = module.vpc.public_subnet_ids[0]
+  security_group_id    = module.eks.node_security_group_id
+  github_pat           = var.github_pat
+}
+
 resource "kubernetes_config_map_v1_data" "aws_auth" {
-  provider = kubernetes.eks
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
   }
-
-  force = true
-
   data = {
-    mapRoles = yamlencode([
-      {
-        rolearn  = module.eks.node_role_arn
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups = [
-          "system:bootstrappers",
-          "system:nodes"
-        ]
-      },
-      {
-        rolearn  = "arn:aws:iam::579177902857:role/eks-cluster-role"
-        username = "eks-cluster-role"
-        groups = [
-          "system:masters"
-        ]
-      },
-      {
-        rolearn  = "arn:aws:iam::579177902857:role/actions"
-        username = "actions"
-        groups = [
-          "system:masters"
-        ]
-      }
-    ])
+    mapRoles = yamlencode(
+      [
+        {
+          groups   = ["system:bootstrappers", "system:nodes"]
+          rolearn  = module.eks.eks_node_role_arn
+          username = "system:node:{{EC2PrivateDNSName}}"
+        }
+      ]
+    )
   }
-
-  depends_on = [module.eks]
 }

@@ -20,7 +20,7 @@ output "eks_cluster_endpoint" {
 
 output "eks_cluster_ca_certificate" {
   description = "The CA certificate of the EKS cluster"
-  value       = module.eks.cluster_ca_certificate
+  value       = module.eks.cluster_certificate_authority_data
   sensitive   = true
 }
 
