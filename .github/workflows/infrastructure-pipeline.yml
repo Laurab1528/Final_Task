@@ -89,6 +89,12 @@ jobs:
           terraform init
           echo "Terraform initialized successfully"
 
+      - name: "Import Existing Secret to State"
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          echo "Attempting to import existing secret to prevent creation error..."
+          terraform import -lock=false 'module.eks.aws_secretsmanager_secret.api_key' 'fastapi/api_key_v2' || true
+
       - name: "Remove Problematic Secret from State"
         run: |
           cd ${{ env.WORKSPACE_DIR }}
