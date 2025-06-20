@@ -169,7 +169,9 @@ jobs:
         run: |
           echo "Applying aws-auth ConfigMap..."
           NODE_ROLE_ARN=$(cat eks_node_role_arn.txt)
+          CI_ROLE_ARN="arn:aws:iam::579177902857:role/actions"
           echo "Node Role ARN: $NODE_ROLE_ARN"
+          echo "CI/CD Role ARN: $CI_ROLE_ARN"
 
           cat <<EOF > aws-auth-cm.yaml
           apiVersion: v1
@@ -184,6 +186,10 @@ jobs:
                 groups:
                   - system:bootstrappers
                   - system:nodes
+              - rolearn: $CI_ROLE_ARN
+                username: cicd-role
+                groups:
+                  - system:masters
           EOF
 
           kubectl apply -f aws-auth-cm.yaml
