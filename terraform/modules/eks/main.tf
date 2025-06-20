@@ -143,7 +143,10 @@ data "aws_iam_policy_document" "assume_role" {
     condition {
       test     = "StringEquals"
       variable = "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub"
-      values   = ["system:serviceaccount:production:fastapi-sa"]
+      values = [
+        "system:serviceaccount:production:fastapi-sa",
+        "system:serviceaccount:external-secrets:external-secrets"
+      ]
     }
   }
 }
@@ -165,6 +168,11 @@ resource "aws_iam_role_policy" "fastapi_secrets_policy" {
           "secretsmanager:GetSecretValue"
         ],
         Resource = aws_secretsmanager_secret.api_key.arn
+      },
+      {
+        Effect   = "Allow",
+        Action   = "kms:Decrypt",
+        Resource = "*"
       }
     ]
   })
