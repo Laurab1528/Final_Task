@@ -21,7 +21,7 @@ module "runner" {
   source                = "./modules/ec2"
   ami                   = var.runner_ami
   runner_instance_type  = var.runner_instance_type
-  subnet_id             = module.vpc.public_subnet_ids[0]
+  subnet_id             = "subnet-0d623f0efa8a6150b"
   security_group_id     = aws_security_group.runner.id
   github_pat            = var.github_pat
 }
