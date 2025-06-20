@@ -103,14 +103,14 @@ jobs:
         run: |
           cd ${{ env.WORKSPACE_DIR }}
           echo "Running Terraform plan..."
-          terraform plan -out=tfplan
+          terraform plan -out=tfplan -lock=false
           echo "Terraform plan completed successfully"
 
       - name: "Terraform Apply with Retry"
         run: |
           for i in $(seq 1 ${{ env.MAX_ATTEMPTS }}); do
             echo "Attempt $i of ${{ env.MAX_ATTEMPTS }}"
-            if cd ${{ env.WORKSPACE_DIR }} && terraform apply -auto-approve tfplan; then
+            if cd ${{ env.WORKSPACE_DIR }} && terraform apply -auto-approve -lock=false tfplan; then
               echo "Terraform apply succeeded"
               break
             else
