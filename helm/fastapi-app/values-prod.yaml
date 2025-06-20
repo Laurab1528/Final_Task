@@ -19,6 +19,7 @@ service:
     service.beta.kubernetes.io/aws-load-balancer-type: nlb
 env:
   LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
 serviceAccount:
   name: fastapi-sa
   namespace: production

@@ -24,6 +24,8 @@ spec:
         env:
         - name: LOG_LEVEL
           value: {{ .Values.env.LOG_LEVEL | quote }}
+        - name: ENVIRONMENT
+          value: {{ .Values.env.ENVIRONMENT | default "production" | quote }}
         livenessProbe:
           httpGet:
             path: {{ .Values.livenessProbe.httpGet.path | default "/health" }}

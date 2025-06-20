@@ -18,6 +18,7 @@ service:
   targetPort: 8080
 env:
   LOG_LEVEL: "INFO"
+  ENVIRONMENT: "development"
 serviceAccount:
   create: true
   name: fastapi-sa

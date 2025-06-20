@@ -1,8 +1,8 @@
 replicaCount: 2
 image:
   repository: fastapi-app
-  tag: latest
-  pullPolicy: Always
+  tag: "latest"
+  pullPolicy: IfNotPresent
 resources:
   limits:
     cpu: 200m
@@ -15,6 +15,7 @@ service:
   port: 80
 env:
   LOG_LEVEL: "INFO"
+  ENVIRONMENT: "production"
 serviceAccount:
   name: fastapi-sa
   namespace: production
