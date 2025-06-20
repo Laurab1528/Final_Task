@@ -52,14 +52,6 @@ jobs:
           role-duration-seconds: 1200
           role-skip-session-tagging: true
 
-      - name: "Verify AWS Configuration"
-        run: |
-          echo "Verifying AWS credentials..."
-          aws sts get-caller-identity
-          echo "Verifying AWS region..."
-          aws configure get region
-          echo "AWS configuration verified successfully"
-
       - name: "Ensure S3 bucket for Terraform state exists"
         run: |
           BUCKET_NAME="epam-final-terraform-state"

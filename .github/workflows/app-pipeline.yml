@@ -84,14 +84,6 @@ jobs:
           role-duration-seconds: 1200
           role-skip-session-tagging: true
 
-      - name: "Verify AWS Configuration"
-        run: |
-          echo "Verifying AWS credentials..."
-          aws sts get-caller-identity
-          echo "Verifying AWS region..."
-          aws configure get region
-          echo "AWS configuration verified successfully"
-
       - name: "Login to Amazon ECR"
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
@@ -140,13 +132,6 @@ jobs:
           role-to-assume: arn:aws:iam::579177902857:role/actions
           role-duration-seconds: 1200
           role-skip-session-tagging: true
-
-      - name: "Verify AWS Configuration"
-        run: |
-          echo "Verifying AWS credentials..."
-          aws sts get-caller-identity
-          echo "Verifying AWS region..."
-          aws configure get region
 
       - name: "Install kubectl"
         run: |
