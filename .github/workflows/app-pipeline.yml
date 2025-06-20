@@ -58,7 +58,10 @@ jobs:
           echo "Tests completed successfully"
 
   build-and-push:
-    if: github.event_name == 'workflow_run'
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     runs-on: self-hosted
     outputs:
       ecr_registry: ${{ steps.login-ecr.outputs.registry }}
@@ -107,7 +110,10 @@ jobs:
           echo "Image pushed successfully"
 
   deploy:
-    if: github.event_name == 'workflow_run'
+    if: >
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push'
     needs: build-and-push
     runs-on: self-hosted
     timeout-minutes: 60
