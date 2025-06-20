@@ -1,136 +1,188 @@
 # Cloud & DevOps Final Project
 
 ## Overview
-Este proyecto implementa una solución CI/CD modular y segura para desplegar una aplicación Python en AWS EKS usando Terraform, Helm y GitHub Actions. La arquitectura sigue buenas prácticas de seguridad y automatización.
+This project implements a modular and secure CI/CD solution to deploy a Python application on AWS EKS using Terraform, Helm, and GitHub Actions. The architecture follows security and automation best practices.
 
 ---
 
-## Arquitectura y Componentes Clave
+## Architecture and Key Components
 
-- **VPC** y **subnet pública**: Ya existen y se referencian automáticamente en Terraform mediante data sources.
-- **EC2 Runner**: Se crea manualmente en la subnet pública existente y se registra como self-hosted runner en GitHub Actions.
-- **Subnets privadas, EKS, ALB, etc.**: Se crean automáticamente con Terraform en la misma VPC.
-- **ALB**: Se crea en la subnet pública y enruta tráfico externo a los pods en subnets privadas.
-- **GitHub Actions**: Pipelines CI/CD, usando el runner EC2 manual para despliegues privados.
+- **VPC and Networking**: 
+  - Public and private subnets
+  - Internet Gateway and NAT Gateway
+  - Route tables and security groups
+- **EKS Cluster**:
+  - Managed node groups in private subnets
+  - OIDC provider for IAM roles
+  - AWS Load Balancer Controller
+- **Secrets Management**:
+  - AWS Secrets Manager for API keys
+  - External Secrets Operator in EKS
+- **CI/CD Pipeline**:
+  - GitHub Actions for automation
+  - ECR for container registry
+  - Helm for Kubernetes deployments
 
 ---
 
-## Flujo de Creación de Infraestructura
+## Infrastructure Creation Flow
 
-1. **VPC y subnet pública**: Ya existen y se referencian con data sources en Terraform.
-2. **EC2 Runner**: Se lanza manualmente en la subnet pública y se registra en GitHub Actions.
-3. **Subnets privadas, EKS, ALB, etc.**: Se crean con Terraform usando la VPC y subnet pública existentes.
+1. **VPC Setup**:
+   - Create VPC with public/private subnets
+   - Configure Internet Gateway and NAT Gateway
+   - Set up route tables and security groups
+
+2. **EKS Deployment**:
+   - Create EKS cluster in private subnets
+   - Deploy managed node groups
+   - Configure OIDC provider
+   - Install AWS Load Balancer Controller
+
+3. **Application Layer**:
+   - Deploy External Secrets Operator
+   - Configure Secrets Manager
+   - Deploy application using Helm
 
 ---
 
-## Resumen Visual
+## Visual Summary
 
 ```mermaid
 flowchart TD
-    VPC[VPC existente]
-    PUB[Subnet pública existente]
-    PRIV[Subnets privadas (Terraform)]
-    EKS[EKS (Terraform)]
-    ALB[ALB (Terraform)]
-    EC2[Runner EC2 (manual)]
-    VPC --> PUB
-    VPC --> PRIV
-    VPC --> EKS
-    VPC --> ALB
-    PUB --> EC2
-    EKS --> ALB
+    VPC[VPC] --> PUBSUB[Public Subnets]
+    VPC --> PRIVSUB[Private Subnets]
+    PUBSUB --> IGW[Internet Gateway]
+    PRIVSUB --> NATGW[NAT Gateway]
+    PRIVSUB --> EKS[EKS Cluster]
+    EKS --> NODES[Managed Node Groups]
+    EKS --> ALB[AWS Load Balancer]
+    EKS --> ESO[External Secrets Operator]
+    ESO --> SECRETS[AWS Secrets Manager]
 ```
 
 ---
 
-## Estructura del Repositorio
+## Repository Structure
 
 ```
-terraform/
-  main.tf
-  variables.tf
-  outputs.tf
-  providers.tf
-  backend.tf
-  modules/
-    vpc/
-    eks/
-    alb/
-  scripts/
-    ensure-backend.sh
-.github/
-  workflows/
-    infrastructure-pipeline.yml
-    app-pipeline.yml
-README.md
+.
+├── app/
+│   ├── Dockerfile
+│   ├── main.py
+│   ├── requirements.txt
+│   └── tests/
+├── terraform/
+│   ├── main.tf
+│   ├── variables.tf
+│   ├── outputs.tf
+│   ├── providers.tf
+│   └── modules/
+│       ├── vpc/
+│       ├── eks/
+│       └── ec2/
+├── helm/
+│   └── fastapi-app/
+│       ├── Chart.yaml
+│       ├── values.yaml
+│       └── templates/
+└── .github/
+    └── workflows/
+        └── deploy.yml
 ```
 
 ---
 
-## Prerequisitos
+## Prerequisites
 
-- AWS CLI configurado
+- AWS CLI configured
 - Terraform >= 1.5.0
-- Repositorio de GitHub con Actions y secrets (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `API_KEY`, `PAT`)
-- VPC y subnet pública ya creadas en AWS
+- kubectl
+- helm
+- GitHub repository with Actions enabled
+- Required AWS permissions
 
 ---
 
-## Setup y Despliegue
+## Setup and Deployment
 
-### 1. Bootstrap (PR)
-- El workflow de infraestructura referencia la VPC y subnet pública existentes usando data sources.
-- Los outputs (`vpc_id`, `public_subnet_ids`) quedan listos para la fase final.
+### 1. Infrastructure Deployment
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
 
-### 2. Crear el runner EC2 manualmente
-- Lanza una instancia EC2 en la subnet pública existente.
-- Asigna el key pair y el security group adecuado (SSH abierto desde tu IP).
-- Instala y registra el runner de GitHub Actions manualmente.
+### 2. Configure kubectl
+```bash
+aws eks update-kubeconfig --region us-east-1 --name cluster-name
+```
 
-### 3. Fase final (merge a main)
-- El workflow crea subnets privadas, EKS, ALB, etc., usando la VPC y subnet pública existentes.
-
----
-
-## Pipelines
-
-- **infrastructure-pipeline.yml:**
-  - Bootstrap: Referencia VPC y subnet pública.
-  - Full infra: Crea subnets privadas, EKS, ALB, etc.
-- **app-pipeline.yml:**
-  - Test/build en runners públicos.
-  - Deploy en el runner EC2 manual.
+### 3. Deploy Application
+```bash
+cd helm/fastapi-app
+helm upgrade --install fastapi-app . -f values.yaml
+```
 
 ---
 
-## Buenas prácticas implementadas
+## CI/CD Pipeline
 
-- Código modular y reutilizable (módulos de VPC, EKS, ALB, etc.).
-- Uso de data sources para recursos existentes.
-- Outputs claros y documentados.
-- Pipelines automáticos y seguros.
-- Separación de fases (bootstrap y full infra).
-- Documentación clara y diagrama de arquitectura.
+The GitHub Actions workflow includes:
 
----
+1. **Build Phase**:
+   - Run tests
+   - Build Docker image
+   - Push to ECR
 
-## Pruebas y evidencia
-
-- [ ] Captura de los recursos creados en AWS.
-- [ ] Salida de `terraform output` mostrando los IDs usados.
-- [ ] Screenshots del runner EC2 registrado y pipelines ejecutados.
+2. **Deploy Phase**:
+   - Update Helm values
+   - Deploy to EKS
+   - Verify deployment
 
 ---
 
-## Notas adicionales
+## Implemented Best Practices
 
-- El runner EC2 se crea y registra manualmente, no por Terraform.
-- La VPC y la subnet pública ya existen y se referencian con data sources.
-- Todos los recursos nuevos se crean en la misma VPC y subnets.
-- El código es modular y fácil de mantener.
+- Infrastructure as Code (IaC) with Terraform
+- Modular and reusable code structure
+- Secure secrets management
+- Private networking for EKS nodes
+- Automated CI/CD pipeline
+- Clear documentation and architecture diagrams
 
 ---
 
-## License
+## Testing and Verification
 
-MIT 
+- [ ] AWS resources created successfully
+- [ ] Application accessible via Load Balancer
+- [ ] Secrets properly managed
+- [ ] CI/CD pipeline working
+- [ ] Monitoring and logging configured
+
+---
+
+## Additional Notes
+
+- All infrastructure is managed through Terraform
+- Secrets are handled securely via AWS Secrets Manager
+- Load Balancer automatically provisions for ingress resources
+- Node groups scale based on demand
+
+---
+
+## Runner and Automation
+
+All Terraform operations are executed from a dedicated EC2 instance (runner) deployed in a public subnet. This runner is registered as a self-hosted runner for GitHub Actions, enabling secure and automated execution of infrastructure code. The runner has network access to AWS and GitHub, allowing it to:
+- Run Terraform commands for infrastructure provisioning
+- Automate the creation and management of secrets in AWS Secrets Manager
+- Trigger deployments and updates via GitHub Actions workflows
+
+Additionally, the entire lifecycle of the EKS cluster (creation, updates, and deletion) is managed from this runner, ensuring centralized and secure control over all infrastructure resources.
+
+---
+
+For details about the contribution process and CI/CD workflow, please refer to [CONTRIBUTING.md](docs/CONTRIBUTING.md).
+
+---

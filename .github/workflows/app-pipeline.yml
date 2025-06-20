@@ -7,104 +7,257 @@ on:
     workflows: ["Infrastructure Pipeline"]
     types:
       - completed
-#env
+
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: fastapi-app
   EKS_CLUSTER_NAME: my-eks-cluster
   HELM_VERSION: v3.12.0
+  APP_DIR: app
+  HELM_DIR: helm/fastapi-app
+  MAX_ATTEMPTS: 3
+  RETRY_WAIT_SECONDS: 30
+  ROLLBACK_ON_FAILURE: true
 
 jobs:
   test-and-build:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
+
+      - name: "Verify Python environment"
+        run: |
+          echo "Python version:"
+          python3 --version
+          echo "Pip version:"
+          pip --version
+
       - name: "Set up Python and dependencies"
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
+
       - name: "Install dependencies"
         run: |
-          cd app
+          cd ${{ env.APP_DIR }}
+          echo "Installing dependencies..."
           pip install -r requirements.txt
+          echo "Dependencies installed successfully"
+
       - name: "Run tests"
         run: |
-          cd app
-          pytest
+          cd ${{ env.APP_DIR }}
+          echo "Running tests..."
+          pytest -v
+          echo "Tests completed successfully"
 
   build-and-push:
     if: github.event_name == 'workflow_run'
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    outputs:
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+    timeout-minutes: 45
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
+
+      - name: "Verify Docker installation"
+        run: |
+          echo "Docker version:"
+          docker --version
+          echo "Docker info:"
+          docker info
+
       - name: "Configure AWS credentials"
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Verify AWS Configuration"
+        run: |
+          echo "Verifying AWS credentials..."
+          aws sts get-caller-identity
+          echo "Verifying AWS region..."
+          aws configure get region
+          echo "AWS configuration verified successfully"
+
       - name: "Login to Amazon ECR"
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+
+      - name: "Verify ECR Repository"
+        run: |
+          echo "Checking ECR repository..."
+          aws ecr describe-repositories --repository-names ${{ env.ECR_REPOSITORY }} || \
+          aws ecr create-repository --repository-name ${{ env.ECR_REPOSITORY }}
+          echo "ECR repository verified"
+
       - name: "Build and push Docker image"
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          cd app
+          cd ${{ env.APP_DIR }}
+          echo "Building Docker image..."
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }} .
+          echo "Pushing Docker image..."
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:${{ github.sha }}
+          echo "Image pushed successfully"
 
   deploy:
     if: github.event_name == 'workflow_run'
     needs: build-and-push
     runs-on: self-hosted
+    timeout-minutes: 60
     steps:
       - name: "Checkout repository"
         uses: actions/checkout@v3
+
+      - name: "Verify working directory"
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "Contents of directory:"
+          ls -la
+          echo "Contents of Helm directory:"
+          ls -la ${{ env.HELM_DIR }}
+
       - name: "Configure AWS credentials"
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: "Verify AWS Configuration"
+        run: |
+          echo "Verifying AWS credentials..."
+          aws sts get-caller-identity
+          echo "Verifying AWS region..."
+          aws configure get region
+
       - name: "Install kubectl"
         run: |
+          echo "Installing kubectl..."
           curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
           chmod +x kubectl
           sudo mv kubectl /usr/local/bin/
-      - name: "Check if EKS cluster exists"
+          echo "kubectl version:"
+          kubectl version --client
+
+      - name: "Check EKS cluster"
         run: |
+          echo "Checking EKS cluster status..."
           aws eks describe-cluster --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
       - name: "Update kubeconfig"
-        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+        run: |
+          echo "Updating kubeconfig..."
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+          echo "Testing cluster connectivity..."
+          kubectl get nodes
+
+      - name: "Install External Secrets Operator"
+        run: |
+          echo "Installing External Secrets Operator..."
+          kubectl apply -f https://github.com/external-secrets/external-secrets/releases/latest/download/crds.yaml
+          helm repo add external-secrets https://charts.external-secrets.io
+          helm upgrade --install external-secrets external-secrets/external-secrets -n external-secrets --create-namespace
+          echo "External Secrets Operator installed successfully"
+
       - name: "Wait for EKS API availability"
         run: |
+          echo "Checking EKS API availability..."
           for i in {1..10}; do
             if kubectl get nodes; then
-              echo "EKS API es disponible!"
+              echo "EKS API is available!"
               break
             else
-              echo "Esperando por EKS API... ($i/10)"
+              echo "Waiting for EKS API... ($i/10)"
               sleep 30
             fi
+            if [ $i -eq 10 ]; then
+              echo "EKS API not available after 5 minutes"
+              exit 1
+            fi
           done
-      - name: "Check EKS connectivity"
-        run: |
-          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-          kubectl get nodes
+
       - name: "Install Helm"
         uses: azure/setup-helm@v3
         with:
           version: ${{ env.HELM_VERSION }}
-      - name: "Deploy with Helm"
+
+      - name: "Verify Helm installation"
         run: |
-          helm upgrade --install fastapi-app ./helm/fastapi-app \
-            --namespace production \
-            --create-namespace \
-            -f helm/fastapi-app/values-prod.yaml \
-            --set image.repository=${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }} \
-            --set image.tag=${{ github.sha }} \
-            --wait 
+          echo "Helm version:"
+          helm version
+          echo "Adding required Helm repos..."
+          helm repo add eks https://aws.github.io/eks-charts
+          helm repo update
+
+      - name: "Deploy with Helm and Rollback"
+        run: |
+          for i in $(seq 1 ${{ env.MAX_ATTEMPTS }}); do
+            echo "Deployment attempt $i of ${{ env.MAX_ATTEMPTS }}"
+            if helm upgrade --install fastapi-app ${{ env.HELM_DIR }} \
+              --namespace production \
+              --create-namespace \
+              -f ${{ env.HELM_DIR }}/values-prod.yaml \
+              --set image.repository=${{ needs.build-and-push.outputs.ecr_registry }}/${{ env.ECR_REPOSITORY }} \
+              --set image.tag=${{ github.sha }} \
+              --wait \
+              --timeout 10m; then
+              echo "Deployment succeeded"
+              break
+            else
+              if [ "${{ env.ROLLBACK_ON_FAILURE }}" = "true" ]; then
+                echo "Deployment failed, rolling back..."
+                helm rollback fastapi-app -n production
+              fi
+              if [ $i -eq ${{ env.MAX_ATTEMPTS }} ]; then
+                echo "Failed after ${{ env.MAX_ATTEMPTS }} attempts"
+                exit 1
+              fi
+              echo "Waiting ${{ env.RETRY_WAIT_SECONDS }} seconds before retry..."
+              sleep ${{ env.RETRY_WAIT_SECONDS }}
+            fi
+          done
+
+      - name: "Verify deployment health"
+        run: |
+          echo "Waiting for pods to be ready..."
+          kubectl wait --for=condition=ready pod -l app=fastapi-app -n production --timeout=5m
+          
+          echo "Checking service endpoints..."
+          kubectl get endpoints -n production
+          
+          echo "Checking pod logs for errors..."
+          for pod in $(kubectl get pods -n production -l app=fastapi-app -o name); do
+            echo "Logs for $pod:"
+            kubectl logs $pod -n production --tail=50
+          done
+          
+          echo "Checking ingress status..."
+          kubectl describe ingress -n production
+
+      - name: "Verify application health"
+        run: |
+          echo "Getting service URL..."
+          SERVICE_URL=$(kubectl get svc -n production fastapi-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          
+          echo "Waiting for service to be accessible..."
+          for i in $(seq 1 30); do
+            if curl -s "http://$SERVICE_URL:8080/health" | grep -q '"status":"ok"'; then
+              echo "Application is healthy!"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "Service health check failed after 30 attempts"
+              exit 1
+            fi
+            echo "Waiting for service to be ready... ($i/30)"
+            sleep 10
+          done 

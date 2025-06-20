@@ -1,7 +1,6 @@
 # VPC EKS
 module "vpc" {
   source      = "./modules/vpc"
-  kms_key_arn = module.eks.kms_key_arn
 
   existing_igw_id                = "igw-0fb57ccf6200364a5"
   existing_public_route_table_id = "rtb-059f084fedb6b0e1e"
