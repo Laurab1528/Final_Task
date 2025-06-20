@@ -48,6 +48,9 @@ jobs:
           echo "Dependencies installed successfully"
 
       - name: "Run tests"
+        env:
+          ENVIRONMENT: "test"
+          API_KEY: "123456789"
         run: |
           cd ${{ env.APP_DIR }}
           echo "Running tests..."
