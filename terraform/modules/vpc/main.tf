@@ -205,4 +205,29 @@ resource "aws_network_acl_rule" "egress_to_anywhere" {
   cidr_block     = "0.0.0.0/0"
   from_port      = 0
   to_port        = 0
+}
+
+# VPC Endpoints for EKS
+resource "aws_vpc_endpoint" "ec2" {
+  vpc_id              = data.aws_vpc.existing.id
+  service_name        = "com.amazonaws.us-east-1.ec2"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids          = aws_subnet.private[*].id
+}
+
+resource "aws_vpc_endpoint" "sts" {
+  vpc_id              = data.aws_vpc.existing.id
+  service_name        = "com.amazonaws.us-east-1.sts"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids          = aws_subnet.private[*].id
+}
+
+resource "aws_vpc_endpoint" "elb" {
+  vpc_id              = data.aws_vpc.existing.id
+  service_name        = "com.amazonaws.us-east-1.elasticloadbalancing"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids          = aws_subnet.private[*].id
 } 
