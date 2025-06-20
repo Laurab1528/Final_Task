@@ -20,4 +20,9 @@ output "cluster_certificate_authority_data" {
 
 output "node_security_group_id" {
   value = aws_eks_cluster.main.vpc_config[0].cluster_security_group_id
+}
+
+output "eks_node_role_arn" {
+  description = "The ARN of the EKS node role"
+  value       = aws_iam_role.nodes.arn
 } 
