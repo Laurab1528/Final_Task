@@ -26,13 +26,13 @@ spec:
           value: {{ .Values.env.LOG_LEVEL | quote }}
         livenessProbe:
           httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
+            path: {{ .Values.livenessProbe.httpGet.path | default "/health" }}
+            port: {{ .Values.livenessProbe.httpGet.port | default 8080 }}
+          initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds | default 5 }}
+          periodSeconds: {{ .Values.livenessProbe.periodSeconds | default 10 }}
         readinessProbe:
           httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10 
+            path: {{ .Values.readinessProbe.httpGet.path | default "/health" }}
+            port: {{ .Values.readinessProbe.httpGet.port | default 8080 }}
+          initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds | default 5 }}
+          periodSeconds: {{ .Values.readinessProbe.periodSeconds | default 10 }} 
