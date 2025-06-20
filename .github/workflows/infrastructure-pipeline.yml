@@ -110,7 +110,7 @@ jobs:
         run: |
           for i in $(seq 1 ${{ env.MAX_ATTEMPTS }}); do
             echo "Attempt $i of ${{ env.MAX_ATTEMPTS }}"
-            if cd ${{ env.WORKSPACE_DIR }} && terraform apply -auto-approve tfplan; then
+            if cd ${{ env.WORKSPACE_DIR }} && terraform apply -auto-approve -lock=false tfplan; then
               echo "Terraform apply succeeded"
               break
             else
