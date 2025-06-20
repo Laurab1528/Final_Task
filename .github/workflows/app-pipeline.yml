@@ -80,6 +80,8 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::579177902857:role/actions
+          role-duration-seconds: 1200
 
       - name: "Verify AWS Configuration"
         run: |
@@ -134,6 +136,8 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::579177902857:role/actions
+          role-duration-seconds: 1200
 
       - name: "Verify AWS Configuration"
         run: |
