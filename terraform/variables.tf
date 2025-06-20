@@ -1,10 +1,42 @@
 variable "aws_region" {
-  description = "AWS region"
+  description = "AWS region for the infrastructure"
+  type        = string
+  default     = "us-east-1"
+}
+
+/*
+variable "runner_ami" {
+  description = "AMI for the GitHub Actions runner"
+  type        = string
+  default     = "ami-0c55b159cbfafe1f0" # Ubuntu 20.04 LTS
+}
+
+variable "runner_instance_type" {
+  description = "Instance type for the GitHub Actions runner"
+  type        = string
+  default     = "t2.micro"
+}
+
+variable "github_pat" {
+  description = "GitHub Personal Access Token for runner registration"
+  type        = string
+  sensitive   = true
+}
+*/
+
+variable "api_key" {
+  description = "API key for the application"
+  type        = string
+  sensitive   = true
+}
+
+variable "existing_igw_id" {
+  description = "The ID of the existing Internet Gateway"
   type        = string
 }
 
-variable "api_key" {
-  description = "API Key for the FastAPI application"
+variable "existing_public_route_table_id" {
+  description = "The ID of the existing public route table"
   type        = string
 }
 
@@ -12,16 +44,4 @@ variable "project_name" {
   description = "Project name for resource naming (used in S3 bucket and DynamoDB table)"
   type        = string
   default     = "epam-final"
-}
-
-variable "runner_ami" {
-  description = "AMI ID for the runner (Ubuntu 20.04 recommended)"
-  type        = string
-  default     = "ami-054d6a336762e438e"
-}
-
-variable "runner_instance_type" {
-  description = "Instance type for the runner"
-  type        = string
-  default     = "t3.small"
 } 

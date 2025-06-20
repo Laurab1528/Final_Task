@@ -13,44 +13,11 @@ module "eks" {
   public_subnet_ids  = [data.aws_subnet.public.id]
   private_subnet_ids = module.vpc.private_subnet_ids
   api_key            = var.api_key
-  depends_on         = []
 }
 
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.cluster_name
 }
-# --- TEMPORARY: Only create backend resources (S3 and DynamoDB) in the first apply ---
-# Comment out all other resources below this line for the initial apply
-# KMS key for backend encryption (S3 and DynamoDB)
-# resource "aws_kms_key" "tf_backend" {
-#   description             = "KMS key for Terraform backend (S3 and DynamoDB)"
-#   deletion_window_in_days = 7
-#   enable_key_rotation     = true
-# }
-
-# S3 bucket for Terraform state
-# resource "aws_s3_bucket" "terraform_state" { ... }
-# resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" { ... }
-# resource "aws_s3_bucket_public_access_block" "terraform_state" { ... }
-# resource "aws_s3_bucket_logging" "terraform_state" { ... }
-# resource "aws_s3_bucket_versioning" "terraform_state_versioning" { ... }
-
-# DynamoDB table for state locking
-# resource "aws_dynamodb_table" "terraform_locks" { ... }
-
-# S3 bucket for logs
-# resource "aws_s3_bucket" "logs" { ... }
-# resource "aws_s3_bucket_server_side_encryption_configuration" "logs" { ... }
-# resource "aws_s3_bucket_public_access_block" "logs" { ... }
-# resource "aws_s3_bucket_versioning" "logs" { ... }
-# resource "aws_s3_bucket_logging" "logs" { ... }
-
-# Logging for the state bucket
-# resource "aws_s3_bucket_logging" "terraform_state" { ... }
-# Versioning for the state bucket
-# resource "aws_s3_bucket_versioning" "terraform_state_versioning" { ... }
-# DynamoDB table for state locking
-# resource "aws_dynamodb_table" "terraform_locks" { ... }
 
 # Data sources para VPC y subnet pública existentes
 
@@ -62,16 +29,20 @@ data "aws_subnet" "public" {
   id = "subnet-0d623f0efa8a6150b"
 }
 
-# Comentar el bloque del runner
-# module "runner" {
-#   source                = "./modules/ec2"
-#   ami                   = var.runner_ami
-#   runner_instance_type  = var.runner_instance_type
-#   subnet_id             = module.vpc.public_subnet_ids[0]
-#   security_group_id     = aws_security_group.runner.id
-#   github_pat            = var.github_pat
-# }
+/*
+# Runner module commented out for migration to GitHub-hosted runners
+module "runner" {
+  source                = "./modules/ec2"
+  ami                   = var.runner_ami
+  runner_instance_type  = var.runner_instance_type
+  subnet_id             = module.vpc.public_subnet_ids[0]
+  security_group_id     = aws_security_group.runner.id
+  github_pat            = var.github_pat
+}
+*/
 
+/*
+# Runner security group rule commented out
 resource "aws_security_group_rule" "eks_from_runner" {
   type                     = "ingress"
   from_port                = 443
@@ -80,7 +51,10 @@ resource "aws_security_group_rule" "eks_from_runner" {
   source_security_group_id = aws_security_group.runner.id
   security_group_id        = module.eks.node_security_group_id
 }
+*/
 
+/*
+# Runner security group commented out
 resource "aws_security_group" "runner" {
   name        = "runner-sg"
   description = "Security group for GitHub Actions runner"
@@ -99,6 +73,7 @@ resource "aws_security_group" "runner" {
     Name = "runner-sg"
   }
 }
+*/
 
 resource "kubernetes_config_map_v1_data" "aws_auth" {
   provider = kubernetes.eks
@@ -112,9 +87,9 @@ resource "kubernetes_config_map_v1_data" "aws_auth" {
   data = {
     mapRoles = yamlencode([
       {
-        rolearn  = "arn:aws:iam::579177902857:role/eks-node-role"
+        rolearn  = module.eks.node_role_arn
         username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = [
+        groups = [
           "system:bootstrappers",
           "system:nodes"
         ]
@@ -122,14 +97,14 @@ resource "kubernetes_config_map_v1_data" "aws_auth" {
       {
         rolearn  = "arn:aws:iam::579177902857:role/eks-cluster-role"
         username = "eks-cluster-role"
-        groups   = [
+        groups = [
           "system:masters"
         ]
       },
       {
         rolearn  = "arn:aws:iam::579177902857:role/actions"
         username = "actions"
-        groups   = [
+        groups = [
           "system:masters"
         ]
       }
