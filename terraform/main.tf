@@ -43,7 +43,6 @@ resource "aws_security_group_rule" "runner_to_eks" {
 # Self-hosted Runner EC2 Instance
 module "ec2" {
   source               = "./modules/ec2"
-  ami                  = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
   runner_instance_type = "t2.medium"
   subnet_id            = module.vpc.public_subnet_ids[0]
   security_group_id    = aws_security_group.runner_sg.id
