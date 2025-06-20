@@ -103,7 +103,7 @@ jobs:
         run: |
           cd ${{ env.WORKSPACE_DIR }}
           echo "Running Terraform plan..."
-          terraform plan -out=tfplan
+          terraform plan -lock=false -out=tfplan
           echo "Terraform plan completed successfully"
 
       - name: "Terraform Apply with Retry"
