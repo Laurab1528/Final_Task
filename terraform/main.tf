@@ -42,6 +42,8 @@ resource "aws_security_group_rule" "runner_to_eks" {
   protocol                  = "tcp"
   source_security_group_id  = aws_security_group.runner_sg.id
   security_group_id         = module.eks.node_security_group_id
+
+  depends_on = [module.eks]
 }
 
 # Self-hosted Runner EC2 Instance
