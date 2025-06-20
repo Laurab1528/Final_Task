@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Request
 from fastapi.security import APIKeyHeader
 import logging
 from datetime import datetime
@@ -42,8 +42,10 @@ if not API_KEY:
 
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key")
 
-async def verify_api_key(api_key: str = Depends(API_KEY_HEADER)):
+async def verify_api_key(request: Request, api_key: str = Depends(API_KEY_HEADER)):
+    logger.info(f"HEADERS_DEBUG: {request.headers}")
     if api_key != API_KEY:
+        logger.error(f"AUTH_FAIL: Clave recibida='{api_key}' vs Clave esperada='{API_KEY[:4]}...'.")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="API Key inválida"
