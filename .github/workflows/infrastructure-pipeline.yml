@@ -89,19 +89,6 @@ jobs:
           terraform init
           echo "Terraform initialized successfully"
 
-      - name: "Import Existing Secret to State"
-        run: |
-          cd ${{ env.WORKSPACE_DIR }}
-          echo "Attempting to import existing secret to prevent creation error..."
-          terraform import -lock=false 'module.eks.aws_secretsmanager_secret.api_key' 'fastapi/api_key_v2' || true
-
-      - name: "Remove Problematic Secret from State"
-        run: |
-          cd ${{ env.WORKSPACE_DIR }}
-          echo "Attempting to remove orphaned Secret and Version from Terraform state..."
-          terraform state rm -lock=false 'module.eks.aws_secretsmanager_secret.api_key' || true
-          terraform state rm -lock=false 'module.eks.aws_secretsmanager_secret_version.api_key_version' || true
-
       - name: "Create terraform.tfvars"
         run: |
           echo "Creating terraform.tfvars file..."
@@ -111,6 +98,12 @@ jobs:
           github_pat = "${{ secrets.GH_PAT }}"
           EOF
           echo "terraform.tfvars created successfully"
+
+      - name: "Import Existing Secret to State"
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          echo "Attempting to import existing secret to prevent creation error..."
+          terraform import -lock=false 'module.eks.aws_secretsmanager_secret.api_key' 'fastapi/api_key_v2' || true
 
       - name: "Terraform Plan"
         run: |
