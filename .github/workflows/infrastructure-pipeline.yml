@@ -149,7 +149,7 @@ jobs:
           # This step will only succeed if the runner is inside the VPC
           for i in $(seq 1 ${{ env.MAX_ATTEMPTS }}); do
             echo "Attempt $i of ${{ env.MAX_ATTEMPTS }}"
-            if CLUSTER_NAME=$(cd ${{ env.WORKSPACE_DIR }} && terraform output -raw cluster_name) && \
+            if CLUSTER_NAME=$(cd ${{ env.WORKSPACE_DIR }} && terraform output -raw eks_cluster_name) && \
                aws eks describe-cluster --name $CLUSTER_NAME --region ${{ env.AWS_REGION }} && \
                aws eks update-kubeconfig --name $CLUSTER_NAME --region ${{ env.AWS_REGION }} && \
                kubectl get nodes; then
