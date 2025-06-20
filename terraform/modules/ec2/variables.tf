@@ -1,8 +1,3 @@
-variable "ami" {
-  description = "AMI for the runner instance"
-  type        = string
-}
-
 variable "runner_instance_type" {
   description = "Instance type for the runner"
   type        = string
