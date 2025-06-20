@@ -29,7 +29,7 @@ def get_secret():
     
     logger.info("Loading API key from AWS Secrets Manager")
     try:
-        secret_name = os.getenv("SECRET_NAME", "fastapi/api_key5")
+        secret_name = os.getenv("SECRET_NAME", "fastapi/api_key_v2")
         region_name = os.environ.get("AWS_REGION", "us-east-1")
         
         session = boto3.session.Session()
