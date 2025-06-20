@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Verify working directory"
         run: |
@@ -33,7 +33,7 @@ jobs:
           ls -la
 
       - name: "Set up Terraform"
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
 
@@ -43,13 +43,14 @@ jobs:
           echo "Terraform successfully installed"
 
       - name: "Configure AWS credentials"
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::579177902857:role/actions
           role-duration-seconds: 1200
+          role-skip-session-tagging: true
 
       - name: "Verify AWS Configuration"
         run: |

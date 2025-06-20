@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Verify Python environment"
         run: |
@@ -36,7 +36,7 @@ jobs:
           pip --version
 
       - name: "Set up Python and dependencies"
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
@@ -65,7 +65,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Verify Docker installation"
         run: |
@@ -75,13 +75,14 @@ jobs:
           docker info
 
       - name: "Configure AWS credentials"
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::579177902857:role/actions
           role-duration-seconds: 1200
+          role-skip-session-tagging: true
 
       - name: "Verify AWS Configuration"
         run: |
@@ -93,7 +94,7 @@ jobs:
 
       - name: "Login to Amazon ECR"
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: "Verify ECR Repository"
         run: |
@@ -120,7 +121,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: "Checkout repository"
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: "Verify working directory"
         run: |
@@ -131,13 +132,14 @@ jobs:
           ls -la ${{ env.HELM_DIR }}
 
       - name: "Configure AWS credentials"
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
           role-to-assume: arn:aws:iam::579177902857:role/actions
           role-duration-seconds: 1200
+          role-skip-session-tagging: true
 
       - name: "Verify AWS Configuration"
         run: |
@@ -193,7 +195,7 @@ jobs:
           done
 
       - name: "Install Helm"
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: ${{ env.HELM_VERSION }}
 
