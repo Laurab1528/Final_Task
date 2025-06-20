@@ -2,7 +2,7 @@ resource "aws_instance" "runner" {
   ami           = var.ami
   instance_type = var.runner_instance_type
   subnet_id     = var.subnet_id
-  security_group_ids = [var.security_group_id]
+  vpc_security_group_ids = [var.security_group_id]
 
   user_data = <<-EOF
               #!/bin/bash
