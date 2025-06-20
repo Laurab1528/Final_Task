@@ -89,6 +89,13 @@ jobs:
           terraform init
           echo "Terraform initialized successfully"
 
+      - name: "Remove Problematic Secret from State"
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          echo "Attempting to remove orphaned Secret and Version from Terraform state..."
+          terraform state rm -lock=false 'module.eks.aws_secretsmanager_secret.api_key' || true
+          terraform state rm -lock=false 'module.eks.aws_secretsmanager_secret_version.api_key_version' || true
+
       - name: "Create terraform.tfvars"
         run: |
           echo "Creating terraform.tfvars file..."
