@@ -89,6 +89,14 @@ jobs:
           terraform init
           echo "Terraform initialized successfully"
 
+      - name: "Remove Orphaned Kubernetes Resources from State"
+        run: |
+          cd ${{ env.WORKSPACE_DIR }}
+          echo "Attempting to remove orphaned Kubernetes ConfigMap from Terraform state..."
+          # This command removes the resource from the state file.
+          # We add "|| true" so the pipeline doesn't fail if the resource is already gone.
+          terraform state rm kubernetes_config_map_v1_data.aws_auth || true
+
       - name: "Create terraform.tfvars"
         run: |
           echo "Creating terraform.tfvars file..."
