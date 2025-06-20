@@ -37,4 +37,9 @@ output "public_subnet_ids" {
 output "private_subnet_ids" {
   description = "The IDs of the private subnets"
   value       = module.vpc.private_subnet_ids
+}
+
+output "eks_node_role_arn" {
+  description = "The ARN of the EKS node IAM role"
+  value       = module.eks.eks_node_role_arn
 } 
