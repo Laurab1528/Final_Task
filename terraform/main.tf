@@ -36,12 +36,12 @@ resource "aws_security_group" "runner_sg" {
 
 # Rule to allow Runner to access EKS API
 resource "aws_security_group_rule" "runner_to_eks" {
-  type                      = "ingress"
-  from_port                 = 443
-  to_port                   = 443
-  protocol                  = "tcp"
-  source_security_group_id  = aws_security_group.runner_sg.id
-  security_group_id         = module.eks.node_security_group_id
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks       = [module.vpc.vpc_cidr_block]
+  security_group_id = module.eks.node_security_group_id
 
   depends_on = [module.eks]
 }
