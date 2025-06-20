@@ -32,12 +32,12 @@ resource "aws_security_group" "runner_sg" {
 
 # Rule to allow Runner to access EKS API
 resource "aws_security_group_rule" "runner_to_eks" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
-  source_security_group_id = aws_security_group.runner_sg.id
-  security_group_id        = module.eks.node_security_group_id # This should be the cluster security group
+  type                      = "ingress"
+  from_port                 = 443
+  to_port                   = 443
+  protocol                  = "tcp"
+  source_security_group_id  = aws_security_group.runner_sg.id
+  security_group_id         = module.eks.node_security_group_id
 }
 
 # Self-hosted Runner EC2 Instance
@@ -45,25 +45,7 @@ module "ec2" {
   source               = "./modules/ec2"
   ami                  = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI
   runner_instance_type = "t2.medium"
-  subnet_id            = module.vpc.public_subnet_ids[0] # Runner in a public subnet to get internet access for GH registration
+  subnet_id            = module.vpc.public_subnet_ids[0]
   security_group_id    = aws_security_group.runner_sg.id
   github_pat           = var.github_pat
-}
-
-resource "kubernetes_config_map_v1_data" "aws_auth" {
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-  data = {
-    mapRoles = yamlencode(
-      [
-        {
-          groups   = ["system:bootstrappers", "system:nodes"]
-          rolearn  = module.eks.eks_node_role_arn
-          username = "system:node:{{EC2PrivateDNSName}}"
-        }
-      ]
-    )
-  }
 }
