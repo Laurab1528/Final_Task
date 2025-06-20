@@ -24,5 +24,5 @@ output "node_security_group_id" {
 
 output "eks_node_role_arn" {
   description = "The ARN of the EKS node role"
-  value       = aws_iam_role.nodes.arn
+  value       = aws_iam_role.node.arn
 } 
