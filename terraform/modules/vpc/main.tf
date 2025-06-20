@@ -155,4 +155,57 @@ resource "aws_iam_role_policy" "flow_log" {
       }
     ]
   })
+}
+
+# Allow traffic from public to private subnets
+data "aws_network_acl" "main" {
+  vpc_id = data.aws_vpc.existing.id
+  filter {
+    name   = "default"
+    values = ["true"]
+  }
+}
+
+resource "aws_network_acl_rule" "public_to_private_ingress" {
+  network_acl_id = data.aws_network_acl.main.id
+  rule_number    = 100
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = aws_subnet.public[0].cidr_block
+  from_port      = 1024
+  to_port        = 65535
+}
+
+resource "aws_network_acl_rule" "private_to_public_egress" {
+  network_acl_id = data.aws_network_acl.main.id
+  rule_number    = 100
+  egress         = true
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = aws_subnet.public[0].cidr_block
+  from_port      = 1024
+  to_port        = 65535
+}
+
+resource "aws_network_acl_rule" "public_to_private_ingress_2" {
+  network_acl_id = data.aws_network_acl.main.id
+  rule_number    = 101
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = aws_subnet.public[1].cidr_block
+  from_port      = 1024
+  to_port        = 65535
+}
+
+resource "aws_network_acl_rule" "private_to_public_egress_2" {
+  network_acl_id = data.aws_network_acl.main.id
+  rule_number    = 101
+  egress         = true
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = aws_subnet.public[1].cidr_block
+  from_port      = 1024
+  to_port        = 65535
 } 
